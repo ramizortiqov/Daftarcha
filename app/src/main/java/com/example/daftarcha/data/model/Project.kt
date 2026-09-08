@@ -11,5 +11,6 @@ data class Project(
     val cost: Double = 0.0,
     val startDate: String?, // YYYY-MM-DD
     val endDate: String? = null,
-    val isArchived: Boolean = false
+    val isArchived: Boolean = false,
+    val brigadierId: String = ""
 )

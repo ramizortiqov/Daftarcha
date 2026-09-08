@@ -19,7 +19,7 @@ import com.example.daftarcha.data.model.* // Импортируем все Entit
         AppUser::class
     ],
     // 3. Указываем версию.
-    version = 8,
+    version = 9,
     // 4. Отключаем экспорт схемы, чтобы избежать предупреждений при сборке
     exportSchema = false
 )

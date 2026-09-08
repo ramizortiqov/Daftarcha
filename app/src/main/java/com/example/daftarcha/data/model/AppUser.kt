@@ -11,5 +11,6 @@ data class AppUser(
     val name: String, // Отображаемое имя
     val role: UserRole = UserRole.WORKER, // BRIGADIER, ADMIN, WORKER
     val employeeId: Int? = null, // Связка с записью в таблице employees (для WORKER)
-    val phone: String? = null
+    val phone: String? = null,
+    val brigadierId: String = ""
 )

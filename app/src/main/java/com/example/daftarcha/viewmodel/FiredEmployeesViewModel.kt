@@ -2,8 +2,10 @@ package com.example.daftarcha.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.daftarcha.data.auth.AuthManager
 import com.example.daftarcha.data.dao.EmployeeDao
 import com.example.daftarcha.data.model.Employee
+import com.example.daftarcha.data.sync.FirestoreSyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -13,10 +15,17 @@ enum class FiredEmployeeDialog { NONE, RESTORE, DELETE }
 
 @HiltViewModel
 class FiredEmployeesViewModel @Inject constructor(
-    private val employeeDao: EmployeeDao
+    private val employeeDao: EmployeeDao,
+    private val syncManager: FirestoreSyncManager,
+    private val authManager: AuthManager
 ) : ViewModel() {
 
-    val firedEmployees = employeeDao.getFiredEmployees()
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val firedEmployees = authManager.currentUser
+        .flatMapLatest { user ->
+            val bId = user?.effectiveBrigadierId ?: ""
+            employeeDao.getFiredEmployeesForBrigadier(bId)
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _dialogState = MutableStateFlow(FiredEmployeeDialog.NONE)
@@ -38,7 +47,10 @@ class FiredEmployeesViewModel @Inject constructor(
     }
     fun deleteSelectedEmployee() {
         _selectedEmployee.value?.let { emp ->
-            viewModelScope.launch { employeeDao.deleteEmployeeById(emp.id) }
+            viewModelScope.launch {
+                employeeDao.deleteEmployeeById(emp.id)
+                syncManager.deleteEmployeeFromCloud(emp.id)
+            }
             dismissDialog()
         }
     }

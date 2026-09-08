@@ -3,6 +3,8 @@ package com.example.daftarcha.ui.screens
 import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -140,23 +142,27 @@ fun ProjectScreen(
         }, floatingActionButton = {
             if (projectValue != null) {
                 if (isEditMode) {
-                    FloatingActionButton(
-                        onClick = {
-                            viewModel.discardAttendanceChanges()
-                            isEditMode = false
-                        },
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.Cancel, "Бекор қилиш")
-                    }
-                    Spacer(modifier = Modifier.width(8.dp)) 
-                    FloatingActionButton(
-                        onClick = {
-                            viewModel.saveAttendanceChanges()
-                            isEditMode = false
+                        FloatingActionButton(
+                            onClick = {
+                                viewModel.discardAttendanceChanges()
+                                isEditMode = false
+                            },
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        ) {
+                            Icon(Icons.Default.Cancel, "Бекор қилиш")
                         }
-                    ) {
-                        Icon(Icons.Default.Save, "Сақлаш")
+                        FloatingActionButton(
+                            onClick = {
+                                viewModel.saveAttendanceChanges()
+                                isEditMode = false
+                            }
+                        ) {
+                            Icon(Icons.Default.Save, "Сақлаш")
+                        }
                     }
                 } else {
                     if (projectValue.endDate == null) {
@@ -233,8 +239,11 @@ fun ProjectScreen(
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Кўрсатиш учун маълумотлар йўқ.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            if (employees.isEmpty()) "Лойиҳага шериклар бириктирилмаган. Шерик қўшиш учун юқоридаги '+' тугмасини босинг."
+                            else "Давомат жадвали юкланмоқда...",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }

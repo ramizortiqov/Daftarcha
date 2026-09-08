@@ -1,9 +1,8 @@
 package com.example.daftarcha.data.dao
 
 import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Upsert
 import com.example.daftarcha.data.model.Project
 import kotlinx.coroutines.flow.Flow
 import androidx.room.Update
@@ -11,7 +10,7 @@ import androidx.room.Update
 interface ProjectDao {
 
     // Аналог add_project()
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insert(project: Project)
 
     // Аналог get_project()
@@ -47,6 +46,18 @@ interface ProjectDao {
     @Query("SELECT * FROM projects")
     suspend fun getAllProjectsList(): List<Project>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertAll(projects: List<Project>)
+
+    @Query("SELECT * FROM projects WHERE (brigadierId = :brigadierId OR :brigadierId = '') AND isArchived = 0 ORDER BY name ASC")
+    fun getProjectsForBrigadier(brigadierId: String): Flow<List<Project>>
+
+    @Query("SELECT * FROM projects WHERE (brigadierId = :brigadierId OR :brigadierId = '') AND isArchived = 1 ORDER BY name ASC")
+    fun getArchivedProjectsForBrigadier(brigadierId: String): Flow<List<Project>>
+
+    @Query("SELECT * FROM projects WHERE (brigadierId = :brigadierId OR :brigadierId = '') ORDER BY name ASC")
+    suspend fun getProjectsForBrigadierList(brigadierId: String): List<Project>
+
+    @Query("UPDATE projects SET brigadierId = :brigadierId WHERE brigadierId = '' OR brigadierId IS NULL")
+    suspend fun assignUnassignedProjectsToBrigadier(brigadierId: String)
 }

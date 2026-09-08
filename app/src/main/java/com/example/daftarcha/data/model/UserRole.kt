@@ -11,5 +11,9 @@ data class AuthUser(
     val name: String = "",
     val role: UserRole = UserRole.WORKER,
     val employeeId: Int? = null,
-    val phone: String? = null
-)
+    val phone: String? = null,
+    val brigadierId: String = ""
+) {
+    val effectiveBrigadierId: String
+        get() = if (role == UserRole.BRIGADIER) id else brigadierId.ifBlank { id }
+}

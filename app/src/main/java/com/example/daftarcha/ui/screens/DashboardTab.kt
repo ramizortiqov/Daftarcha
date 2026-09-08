@@ -13,19 +13,28 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.daftarcha.ui.components.StatsCard
 import com.example.daftarcha.viewmodel.HomeViewModel
+import com.example.daftarcha.viewmodel.SyncViewModel
+import com.example.daftarcha.data.sync.SyncStatus
 import androidx.compose.material3.Divider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.ui.platform.LocalContext
@@ -39,6 +48,7 @@ import com.example.daftarcha.data.model.UserRole
 @Composable
 fun DashboardTab(
     viewModel: HomeViewModel = hiltViewModel(),
+    syncViewModel: SyncViewModel = hiltViewModel(),
     onAddProjectClick: () -> Unit,
     onAddEmployeeClick: () -> Unit,
     navController: NavHostController,
@@ -49,6 +59,8 @@ fun DashboardTab(
     val employeeCount by viewModel.employeeCount.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
     val isBrigadier = currentUser?.role == UserRole.BRIGADIER
+    val syncStatus by syncViewModel.syncStatus.collectAsState()
+    val lastSyncText by syncViewModel.lastSyncTimeFormatted.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     Column(
@@ -115,7 +127,124 @@ fun DashboardTab(
         ) {
             Text("АРХИВ ИШЛАР")
         }
-        Divider(modifier = Modifier.padding(vertical = 16.dp))
+
+        // --- FIREBASE CLOUD SYNC CARD ---
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+            ),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CloudSync,
+                        contentDescription = "Firebase синхронизация",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Firebase булутли синхронизация",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Охирги: $lastSyncText",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                if (syncStatus is SyncStatus.Error) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.ErrorOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = (syncStatus as SyncStatus.Error).message,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                } else if (syncStatus is SyncStatus.Success) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = (syncStatus as SyncStatus.Success).message,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+
+                Button(
+                    onClick = { syncViewModel.triggerSync() },
+                    enabled = syncStatus !is SyncStatus.InProgress,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    if (syncStatus is SyncStatus.InProgress) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Синхронизация қилинмоқда...")
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Sync,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("БУЛУТ БИЛАН СИНХРОНИЗАЦИЯ ҚИЛИШ")
+                    }
+                }
+            }
+        }
+
+        Divider(modifier = Modifier.padding(vertical = 12.dp))
 
         OutlinedButton(
             onClick = {

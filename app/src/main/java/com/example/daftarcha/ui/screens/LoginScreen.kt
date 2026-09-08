@@ -2,9 +2,11 @@ package com.example.daftarcha.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -20,7 +22,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.daftarcha.data.model.UserRole
 import com.example.daftarcha.viewmodel.AuthViewModel
 
 @Composable
@@ -31,9 +32,23 @@ fun LoginScreen(
     val uiState by viewModel.uiState.collectAsState()
     val focusManager = LocalFocusManager.current
 
+    // Screen mode: Login or Register Brigadier
+    var isRegisteringBrigadier by remember { mutableStateOf(false) }
+
+    // Login fields
     var loginId by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+
+    // Register fields
+    var regName by remember { mutableStateOf("") }
+    var regLoginId by remember { mutableStateOf("") }
+    var regPassword by remember { mutableStateOf("") }
+    var regConfirmPassword by remember { mutableStateOf("") }
+    var regPhone by remember { mutableStateOf("") }
+    var regPasswordVisible by remember { mutableStateOf(false) }
+    var regConfirmPasswordVisible by remember { mutableStateOf(false) }
+    var localError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
@@ -46,59 +61,235 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(24.dp),
+                .padding(16.dp),
             contentAlignment = Alignment.Center
         ) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .widthIn(max = 480.dp),
+                    .widthIn(max = 500.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
                 shape = RoundedCornerShape(24.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(28.dp),
+                        .verticalScroll(rememberScrollState())
+                        .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    // Logo / Icon
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(68.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
+                    if (!isRegisteringBrigadier) {
+                        // ==================== LOGIN VIEW ====================
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(64.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = "Тизимга кириш",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(34.dp)
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = "Дафтарча",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Text(
+                            text = "Логин (ID ёки исм) ва паролни киритиб тизимга киринг",
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        if (uiState.errorMessage != null) {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.errorContainer,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.ErrorOutline,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = uiState.errorMessage ?: "",
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                            }
+                        }
+
+                        // Login ID / Name field
+                        OutlinedTextField(
+                            value = loginId,
+                            onValueChange = {
+                                loginId = it
+                                if (uiState.errorMessage != null) viewModel.clearError()
+                            },
+                            label = { Text("Логин (ID) ёки Исм") },
+                            placeholder = { Text("масалан: 01 ёки исмингиз") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Badge, contentDescription = null)
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Text,
+                                imeAction = ImeAction.Next
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+
+                        // Password field
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = {
+                                password = it
+                                if (uiState.errorMessage != null) viewModel.clearError()
+                            },
+                            label = { Text("Парол") },
+                            leadingIcon = {
+                                Icon(Icons.Default.VpnKey, contentDescription = null)
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                    Icon(
+                                        imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = if (passwordVisible) "Паролни яшириш" else "Паролни кўрсатиш"
+                                    )
+                                }
+                            },
+                            singleLine = true,
+                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    focusManager.clearFocus()
+                                    viewModel.login(loginId, password)
+                                }
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Button(
+                            onClick = {
+                                focusManager.clearFocus()
+                                viewModel.login(loginId, password)
+                            },
+                            enabled = !uiState.isLoading && loginId.isNotBlank() && password.isNotBlank(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            if (uiState.isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(
+                                    "КИРИШ",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        // Divider
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            HorizontalDivider(modifier = Modifier.weight(1f))
+                            Text(
+                                text = "  ёки  ",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            HorizontalDivider(modifier = Modifier.weight(1f))
+                        }
+
+                        // "Я бригадир" button
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.clearError()
+                                localError = null
+                                isRegisteringBrigadier = true
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
                             Icon(
-                                imageVector = Icons.Default.Lock,
-                                contentDescription = "Тизимга кириш",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(36.dp)
+                                imageVector = Icons.Default.Engineering,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Я бригадир",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
-                    }
 
-                    Text(
-                        text = "Дафтарча",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    } else {
+                        // ==================== REGISTER BRIGADIER VIEW ====================
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    viewModel.clearError()
+                                    localError = null
+                                    isRegisteringBrigadier = false
+                                }
+                            ) {
+                                Icon(Icons.Default.ArrowBack, contentDescription = "Орқага")
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Бригадирни рўйхатдан ўтказиш",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
 
-                    Text(
-                        text = "Бригадир берган ID ва парол билан тизимга киринг",
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    if (uiState.errorMessage != null) {
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.errorContainer,
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -106,126 +297,247 @@ fun LoginScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.ErrorOutline,
+                                    imageVector = Icons.Default.Info,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(22.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = uiState.errorMessage ?: "",
-                                    color = MaterialTheme.colorScheme.onErrorContainer,
-                                    style = MaterialTheme.typography.bodyMedium
+                                    text = "Исм ва паролингизни киритинг. Сиз автоматик тарзда шериклар рўйхатига ҳам киритиласиз.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
-                    }
 
-                    // Login ID field
-                    OutlinedTextField(
-                        value = loginId,
-                        onValueChange = {
-                            loginId = it
-                            if (uiState.errorMessage != null) viewModel.clearError()
-                        },
-                        label = { Text("Фойдаланувчи ID") },
-                        placeholder = { Text("масалан: 01 ёки исм") },
-                        leadingIcon = {
-                            Icon(Icons.Default.Badge, contentDescription = null)
-                        },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Text,
-                            imeAction = ImeAction.Next
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    // Password field
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = {
-                            password = it
-                            if (uiState.errorMessage != null) viewModel.clearError()
-                        },
-                        label = { Text("Парол") },
-                        leadingIcon = {
-                            Icon(Icons.Default.VpnKey, contentDescription = null)
-                        },
-                        trailingIcon = {
-                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                Icon(
-                                    imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                    contentDescription = if (passwordVisible) "Паролни яшириш" else "Паролни кўрсатиш"
-                                )
+                        val activeError = localError ?: uiState.errorMessage
+                        if (activeError != null) {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.errorContainer,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.ErrorOutline,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = activeError,
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
                             }
-                        },
-                        singleLine = true,
-                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Done
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onDone = {
+                        }
+
+                        // Name field (Required)
+                        OutlinedTextField(
+                            value = regName,
+                            onValueChange = {
+                                regName = it
+                                localError = null
+                                if (uiState.errorMessage != null) viewModel.clearError()
+                            },
+                            label = { Text("Исм (Бригадир исми) *") },
+                            placeholder = { Text("масалан: Алишер") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Person, contentDescription = null)
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Text,
+                                imeAction = ImeAction.Next
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+
+                        // Login ID field (Optional - defaults to name or brigadier)
+                        OutlinedTextField(
+                            value = regLoginId,
+                            onValueChange = {
+                                regLoginId = it
+                                localError = null
+                                if (uiState.errorMessage != null) viewModel.clearError()
+                            },
+                            label = { Text("Логин / ID (ихтиёрий)") },
+                            placeholder = { Text("масалан: alisher ёки brigadier") },
+                            supportingText = {
+                                Text("Бўш қолдирилса, исм асосида яратилади")
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Badge, contentDescription = null)
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Text,
+                                imeAction = ImeAction.Next
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+
+                        // Password field
+                        OutlinedTextField(
+                            value = regPassword,
+                            onValueChange = {
+                                regPassword = it
+                                localError = null
+                                if (uiState.errorMessage != null) viewModel.clearError()
+                            },
+                            label = { Text("Парол *") },
+                            leadingIcon = {
+                                Icon(Icons.Default.VpnKey, contentDescription = null)
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = { regPasswordVisible = !regPasswordVisible }) {
+                                    Icon(
+                                        imageVector = if (regPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = if (regPasswordVisible) "Паролни яшириш" else "Паролни кўрсатиш"
+                                    )
+                                }
+                            },
+                            singleLine = true,
+                            visualTransformation = if (regPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Next
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+
+                        // Confirm password field
+                        OutlinedTextField(
+                            value = regConfirmPassword,
+                            onValueChange = {
+                                regConfirmPassword = it
+                                localError = null
+                                if (uiState.errorMessage != null) viewModel.clearError()
+                            },
+                            label = { Text("Паролни тасдиқланг *") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Lock, contentDescription = null)
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = { regConfirmPasswordVisible = !regConfirmPasswordVisible }) {
+                                    Icon(
+                                        imageVector = if (regConfirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = if (regConfirmPasswordVisible) "Паролни яшириш" else "Паролни кўрсатиш"
+                                    )
+                                }
+                            },
+                            singleLine = true,
+                            visualTransformation = if (regConfirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    focusManager.clearFocus()
+                                }
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+
+                        // Phone field (Optional)
+                        OutlinedTextField(
+                            value = regPhone,
+                            onValueChange = {
+                                regPhone = it
+                                localError = null
+                                if (uiState.errorMessage != null) viewModel.clearError()
+                            },
+                            label = { Text("Телефон (ихтиёрий)") },
+                            placeholder = { Text("+998 90 123 45 67") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Phone, contentDescription = null)
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Phone,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    focusManager.clearFocus()
+                                }
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Button(
+                            onClick = {
                                 focusManager.clearFocus()
-                                viewModel.login(loginId, password)
+                                if (regName.isBlank()) {
+                                    localError = "Исмни киритинг"
+                                    return@Button
+                                }
+                                if (regPassword.isBlank()) {
+                                    localError = "Паролни киритинг"
+                                    return@Button
+                                }
+                                if (regPassword != regConfirmPassword) {
+                                    localError = "Пароллар бир хил эмас"
+                                    return@Button
+                                }
+                                viewModel.registerBrigadier(
+                                    name = regName,
+                                    loginId = regLoginId.takeIf { it.isNotBlank() },
+                                    pass = regPassword,
+                                    phone = regPhone.takeIf { it.isNotBlank() }
+                                )
+                            },
+                            enabled = !uiState.isLoading && regName.isNotBlank() && regPassword.isNotBlank(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            if (uiState.isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(
+                                    "РЎЙХАТДАН ЎТИШ ВА КИРИШ",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Button(
-                        onClick = {
-                            focusManager.clearFocus()
-                            viewModel.login(loginId, password)
-                        },
-                        enabled = !uiState.isLoading && loginId.isNotBlank() && password.isNotBlank(),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        if (uiState.isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text(
-                                "КИРИШ",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
                         }
-                    }
 
-                    // Default tip for first run
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(
-                                text = "💡 Биринчи кириш учун:",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Бригадир логини: brigadier\nПарол: 123",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        TextButton(
+                            onClick = {
+                                viewModel.clearError()
+                                localError = null
+                                isRegisteringBrigadier = false
+                            }
+                        ) {
+                            Text("Кириш ойнасига қайтиш")
                         }
                     }
                 }

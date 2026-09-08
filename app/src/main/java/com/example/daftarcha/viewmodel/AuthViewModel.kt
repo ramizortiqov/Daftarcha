@@ -29,7 +29,12 @@ class AuthViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
-    val allAppUsers: StateFlow<List<AppUser>> = appUserDao.getAllUsersFlow()
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val allAppUsers: StateFlow<List<AppUser>> = currentUser
+        .flatMapLatest { user ->
+            val bId = user?.effectiveBrigadierId ?: ""
+            appUserDao.getUsersByBrigadierFlow(bId)
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
@@ -48,6 +53,26 @@ class AuthViewModel @Inject constructor(
                 _uiState.value = LoginUiState(
                     isLoading = false,
                     errorMessage = result.exceptionOrNull()?.message ?: "Киришда хатолик"
+                )
+            }
+        }
+    }
+
+    fun registerBrigadier(
+        name: String,
+        loginId: String?,
+        pass: String,
+        phone: String? = null
+    ) {
+        viewModelScope.launch {
+            _uiState.value = LoginUiState(isLoading = true)
+            val result = authManager.registerBrigadier(name, loginId, pass, phone)
+            if (result.isSuccess) {
+                _uiState.value = LoginUiState(isSuccess = true)
+            } else {
+                _uiState.value = LoginUiState(
+                    isLoading = false,
+                    errorMessage = result.exceptionOrNull()?.message ?: "Рўйхатдан ўтишда хатолик"
                 )
             }
         }

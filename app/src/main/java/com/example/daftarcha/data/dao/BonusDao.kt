@@ -1,9 +1,8 @@
 package com.example.daftarcha.data.dao
 
 import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Upsert
 import com.example.daftarcha.data.model.Bonus
 import kotlinx.coroutines.flow.Flow
 
@@ -12,7 +11,7 @@ data class ProjectBonusTotal(val projectId: Int, val total: Double)
 interface BonusDao {
 
     // Аналог add_bonus()
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insert(bonus: Bonus)
 
     // Аналог get_bonuses_for_project()
@@ -33,6 +32,6 @@ interface BonusDao {
     @Query("SELECT * FROM bonuses")
     suspend fun getAllBonuses(): List<Bonus>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertAll(bonuses: List<Bonus>)
 }

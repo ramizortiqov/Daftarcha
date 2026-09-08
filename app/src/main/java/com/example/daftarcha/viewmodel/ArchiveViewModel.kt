@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.daftarcha.data.dao.ProjectDao
 import com.example.daftarcha.data.model.Project
+import com.example.daftarcha.data.sync.FirestoreSyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,7 +23,8 @@ enum class ArchiveDialog {
 
 @HiltViewModel
 class ArchiveViewModel @Inject constructor(
-    private val projectDao: ProjectDao
+    private val projectDao: ProjectDao,
+    private val syncManager: FirestoreSyncManager
 ) : ViewModel() {
 
     // Поток архивированных проектов
@@ -60,6 +62,7 @@ class ArchiveViewModel @Inject constructor(
         _selectedProject.value?.let { project ->
             viewModelScope.launch {
                 projectDao.deleteProjectById(project.id)
+                syncManager.deleteProjectFromCloud(project.id)
                 dismissDialog()
             }
         }

@@ -1,9 +1,8 @@
 package com.example.daftarcha.data.dao
 
 import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Upsert
 import com.example.daftarcha.data.model.Payment
 import kotlinx.coroutines.flow.Flow
 
@@ -11,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 interface PaymentDao {
 
     // Аналог add_payment()
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insert(payment: Payment)
 
     // Аналог get_payment_history_for_employee()
@@ -42,6 +41,6 @@ interface PaymentDao {
     @Query("SELECT * FROM payments")
     suspend fun getAllPayments(): List<Payment>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertAll(payments: List<Payment>)
 }

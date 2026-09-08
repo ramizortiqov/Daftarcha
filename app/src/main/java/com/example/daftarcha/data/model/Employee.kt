@@ -9,5 +9,6 @@ data class Employee(
     val id: Int = 0,
     val name: String,
     val phone: String?,
-    val isFired: Boolean = false
+    val isFired: Boolean = false,
+    val brigadierId: String = ""
 )

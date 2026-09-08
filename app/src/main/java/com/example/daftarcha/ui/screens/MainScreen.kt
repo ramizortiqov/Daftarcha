@@ -19,8 +19,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.daftarcha.data.model.UserRole
+import com.example.daftarcha.data.sync.SyncStatus
 import com.example.daftarcha.viewmodel.CalculatorViewModel
 import com.example.daftarcha.viewmodel.HomeViewModel
+import com.example.daftarcha.viewmodel.SyncViewModel
 
 sealed class Screen(val route: String, val title: String? = null, val icon: ImageVector? = null) {
     object Dashboard : Screen("dashboard", "Бош сахифа", Icons.Default.Dashboard)
@@ -51,12 +53,19 @@ fun MainScreen(
     onShowAddProjectDialog: () -> Unit,
     onShowAddEmployeeDialog: () -> Unit,
     onLogout: () -> Unit,
-    homeViewModel: HomeViewModel = hiltViewModel()
+    homeViewModel: HomeViewModel = hiltViewModel(),
+    syncViewModel: SyncViewModel = hiltViewModel()
 ) {
     val navController = rememberNavController()
     val currentUser by homeViewModel.currentUser.collectAsState()
     val isBrigadier = currentUser?.role == UserRole.BRIGADIER
+    val syncStatus by syncViewModel.syncStatus.collectAsState()
     var showLogoutConfirm by remember { mutableStateOf(false) }
+
+    // Auto-sync with Firebase in background on start
+    LaunchedEffect(Unit) {
+        syncViewModel.triggerSync()
+    }
 
     Scaffold(
         topBar = {
@@ -79,6 +88,26 @@ fun MainScreen(
                     }
                 },
                 actions = {
+                    // Cloud Sync action button
+                    IconButton(
+                        onClick = { syncViewModel.triggerSync() },
+                        enabled = syncStatus !is SyncStatus.InProgress
+                    ) {
+                        if (syncStatus is SyncStatus.InProgress) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.CloudSync,
+                                contentDescription = "Булут билан синхронизация қилиш",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
                     // Only Brigadier can open User & Role management
                     if (isBrigadier) {
                         IconButton(onClick = { navController.navigate(Screen.UserManagement.route) }) {

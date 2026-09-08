@@ -1,9 +1,8 @@
 package com.example.daftarcha.data.dao
 
 import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Upsert
 import com.example.daftarcha.data.model.Employee
 import com.example.daftarcha.data.model.ProjectEmployee
 import com.example.daftarcha.data.model.ProjectEmployeeCount
@@ -13,8 +12,7 @@ import kotlinx.coroutines.flow.Flow
 interface ProjectEmployeeDao {
 
     // Аналог add_employee_to_project()
-    // OnConflictStrategy.IGNORE = если связь уже есть, ничего не делать
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Upsert
     suspend fun insert(projectEmployee: ProjectEmployee)
 
     // Аналог get_project_employees()
@@ -39,6 +37,6 @@ interface ProjectEmployeeDao {
     @Query("SELECT * FROM project_employees")
     suspend fun getAllProjectEmployees(): List<ProjectEmployee>
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Upsert
     suspend fun insertAll(list: List<ProjectEmployee>)
 }

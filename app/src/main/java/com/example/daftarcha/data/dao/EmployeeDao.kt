@@ -1,9 +1,8 @@
 package com.example.daftarcha.data.dao
 
 import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Upsert
 import com.example.daftarcha.data.model.Employee
 import kotlinx.coroutines.flow.Flow
 import androidx.room.Update
@@ -12,8 +11,8 @@ import androidx.room.Update
 interface EmployeeDao {
 
     // Аналог add_employee()
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(employee: Employee)
+    @Upsert
+    suspend fun insert(employee: Employee): Long
 
     // Аналог get_employee()
     @Query("SELECT * FROM employees WHERE id = :id")
@@ -47,6 +46,21 @@ interface EmployeeDao {
     @Query("DELETE FROM employees WHERE id = :employeeId")
     suspend fun deleteEmployeeById(employeeId: Int)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertAll(employees: List<Employee>)
+
+    @Query("SELECT * FROM employees WHERE (brigadierId = :brigadierId OR :brigadierId = '') AND isFired = 0 ORDER BY name ASC")
+    fun getEmployeesForBrigadier(brigadierId: String): Flow<List<Employee>>
+
+    @Query("SELECT * FROM employees WHERE (brigadierId = :brigadierId OR :brigadierId = '') AND isFired = 0 ORDER BY name ASC")
+    suspend fun getEmployeesForBrigadierSuspend(brigadierId: String): List<Employee>
+
+    @Query("SELECT * FROM employees WHERE (brigadierId = :brigadierId OR :brigadierId = '') AND isFired = 1 ORDER BY name ASC")
+    fun getFiredEmployeesForBrigadier(brigadierId: String): Flow<List<Employee>>
+
+    @Query("SELECT * FROM employees WHERE (brigadierId = :brigadierId OR :brigadierId = '') ORDER BY name ASC")
+    suspend fun getAllEmployeesForBrigadierSuspend(brigadierId: String): List<Employee>
+
+    @Query("UPDATE employees SET brigadierId = :brigadierId WHERE brigadierId = '' OR brigadierId IS NULL")
+    suspend fun assignUnassignedEmployeesToBrigadier(brigadierId: String)
 }

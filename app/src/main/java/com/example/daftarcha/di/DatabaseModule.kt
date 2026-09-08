@@ -2,6 +2,8 @@ package com.example.daftarcha.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.daftarcha.data.db.DaftarchaDatabase
 import dagger.Module
 import dagger.Provides
@@ -16,6 +18,26 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
+    private val MIGRATION_8_9 = object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            try {
+                db.execSQL("ALTER TABLE employees ADD COLUMN brigadierId TEXT NOT NULL DEFAULT ''")
+            } catch (e: Exception) {
+                // Column might already exist
+            }
+            try {
+                db.execSQL("ALTER TABLE projects ADD COLUMN brigadierId TEXT NOT NULL DEFAULT ''")
+            } catch (e: Exception) {
+                // Column might already exist
+            }
+            try {
+                db.execSQL("ALTER TABLE app_users ADD COLUMN brigadierId TEXT NOT NULL DEFAULT ''")
+            } catch (e: Exception) {
+                // Column might already exist
+            }
+        }
+    }
+
     // 3. "ИНСТРУКЦИЯ №1": Как создавать саму базу данных
     @Provides
     @Singleton // @Singleton = Создать ОДИН раз и использовать этот экземпляр везде
@@ -27,6 +49,7 @@ object DatabaseModule {
             DaftarchaDatabase::class.java,
             "daftarcha_db" // Имя файла вашей базы данных на телефоне
         )
+            .addMigrations(MIGRATION_8_9)
             .fallbackToDestructiveMigration()
             .build()
     }

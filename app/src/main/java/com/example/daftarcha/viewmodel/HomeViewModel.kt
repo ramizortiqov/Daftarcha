@@ -46,11 +46,15 @@ class HomeViewModel @Inject constructor(
         authManager.logout()
     }
 
-    // --- projectListItems (ДЛЯ ВКЛАДКИ ПРОЕКТОВ) ОСТАЕТСЯ БЕЗ ИЗМЕНЕНИЙ ---
-    val projectListItems: StateFlow<List<ProjectListItem>> = projectDao.getAllProjects()
+    // --- projectListItems (ДЛЯ ВКЛАДКИ ПРОЕКТОВ) ---
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val projectListItems: StateFlow<List<ProjectListItem>> = currentUser
+        .flatMapLatest { user ->
+            val bId = user?.effectiveBrigadierId ?: ""
+            projectDao.getProjectsForBrigadier(bId)
+        }
         .flatMapLatest { projects ->
             combine(
-                // Убедитесь, что DAO и data class-ы для этого существуют
                 projectEmployeeDao.getProjectEmployeeCounts()
                     .map { list: List<ProjectEmployeeCount> -> list.associateBy { it.projectId }.mapValues { it.value.count } },
                 attendanceDao.getProjectTotalWorkdays()
@@ -70,33 +74,40 @@ class HomeViewModel @Inject constructor(
     val projectCount: StateFlow<Int> = projectListItems.map { it.size }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
-    // --- ВОЗВРАЩАЕМ ПРОСТОЙ СПИСОК СОТРУДНИКОВ (БЕЗ БАЛАНСА) ---
-    val employees: StateFlow<List<Employee>> = employeeDao.getAllEmployees()
+    // --- СПИСОК СОТРУДНИКОВ, ПРИВЯЗАННЫХ К ТЕКУЩЕМУ БРИГАДИРУ ---
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val employees: StateFlow<List<Employee>> = currentUser
+        .flatMapLatest { user ->
+            val bId = user?.effectiveBrigadierId ?: ""
+            employeeDao.getEmployeesForBrigadier(bId)
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // employeeCount теперь использует 'employees'
     val employeeCount: StateFlow<Int> = employees.map { it.size }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
-    // --- КОНЕЦ БЛОКА СОТРУДНИКОВ ---
 
-    // --- Функции addProject, addEmployee без изменений ---
     fun addProject(name: String, startDate: String?) {
         viewModelScope.launch {
             if (name.isNotBlank()) {
+                val bId = currentUser.value?.effectiveBrigadierId ?: ""
                 val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
                 projectDao.insert(Project(
                     name = name.trim(),
-                    startDate = startDate?.trim().takeIf { !it.isNullOrBlank() } ?: currentDate
+                    startDate = startDate?.trim().takeIf { !it.isNullOrBlank() } ?: currentDate,
+                    brigadierId = bId
                 ))
             }
         }
     }
+
     fun addEmployee(name: String, phone: String?) {
         viewModelScope.launch {
             if (name.isNotBlank()) {
+                val bId = currentUser.value?.effectiveBrigadierId ?: ""
                 employeeDao.insert(Employee(
                     name = name.trim(),
-                    phone = phone?.trim().takeIf { !it.isNullOrBlank() }
+                    phone = phone?.trim().takeIf { !it.isNullOrBlank() },
+                    brigadierId = bId
                 ))
             }
         }

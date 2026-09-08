@@ -57,19 +57,25 @@ class WorkerDashboardViewModel @Inject constructor(
                 attendanceDao.getAllProjectTotalWorkdays(),
                 projectDao.getAllProjects()
             ) { values ->
-                val emp = values[0] as Employee
-                val paymentsList = values[1] as List<Payment>
-                val totalPaid = values[2] as Double
-                val totalWorkdays = values[3] as Int
-                val empDaysPerProj = (values[4] as List<ProjectEmployeeWorkdays>)
+                val emp = values[0] as? Employee ?: return@combine null
+                @Suppress("UNCHECKED_CAST")
+                val paymentsList = (values[1] as? List<*>)?.filterIsInstance<Payment>() ?: emptyList()
+                val totalPaid = (values[2] as? Number)?.toDouble() ?: 0.0
+                val totalWorkdays = (values[3] as? Number)?.toInt() ?: 0
+                @Suppress("UNCHECKED_CAST")
+                val empDaysPerProj = ((values[4] as? List<*>)?.filterIsInstance<ProjectEmployeeWorkdays>() ?: emptyList())
                     .associate { it.projectId to it.workdays }
-                val bonusesMap = (values[5] as List<ProjectBonusTotal>)
+                @Suppress("UNCHECKED_CAST")
+                val bonusesMap = ((values[5] as? List<*>)?.filterIsInstance<ProjectBonusTotal>() ?: emptyList())
                     .associate { it.projectId to it.total }
-                val expensesMap = (values[6] as List<ProjectExpenseTotal>)
+                @Suppress("UNCHECKED_CAST")
+                val expensesMap = ((values[6] as? List<*>)?.filterIsInstance<ProjectExpenseTotal>() ?: emptyList())
                     .associate { it.projectId to it.total }
-                val totalDaysMap = (values[7] as List<ProjectTotalWorkdays>)
+                @Suppress("UNCHECKED_CAST")
+                val totalDaysMap = ((values[7] as? List<*>)?.filterIsInstance<ProjectTotalWorkdays>() ?: emptyList())
                     .associate { it.projectId to it.count }
-                val allProjs = (values[8] as List<Project>)
+                @Suppress("UNCHECKED_CAST")
+                val allProjs = ((values[8] as? List<*>)?.filterIsInstance<Project>() ?: emptyList())
                     .associateBy { it.id }
 
                 var totalEarned = 0.0

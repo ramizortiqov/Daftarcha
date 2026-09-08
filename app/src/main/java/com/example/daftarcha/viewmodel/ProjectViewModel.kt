@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.daftarcha.data.dao.*
 import com.example.daftarcha.data.model.*
+import com.example.daftarcha.data.sync.FirestoreSyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -52,6 +53,7 @@ class ProjectViewModel @Inject constructor(
     private val expenseDao: ExpenseDao,
     private val bonusDao: BonusDao,
     private val paymentDao: PaymentDao,
+    private val syncManager: FirestoreSyncManager,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -109,39 +111,49 @@ class ProjectViewModel @Inject constructor(
         allAttendance
     ) { proj, emps, attendanceList ->
 
-        if (proj == null || proj.startDate == null) {
+        if (proj == null) {
             return@combine AttendanceTable()
         }
 
-        val dates = mutableListOf<String>()
+        val dates = mutableSetOf<String>()
+        val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         try {
-            val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            val startDate = formatter.parse(proj.startDate!!)
-            val endDate = proj.endDate?.let { formatter.parse(it) } ?: Date()
-
+            val sDate = proj.startDate?.takeIf { it.isNotBlank() }?.let { formatter.parse(it) } ?: Date()
+            val eDate = proj.endDate?.takeIf { it.isNotBlank() }?.let { formatter.parse(it) } ?: Date()
+            val minDate = if (sDate.before(eDate)) sDate else eDate
+            val maxDate = if (eDate.after(sDate)) eDate else sDate
 
             val cal = java.util.Calendar.getInstance()
-            cal.time = startDate
+            cal.time = minDate
 
-            while (!cal.time.after(endDate)) {
+            while (!cal.time.after(maxDate)) {
                 dates.add(formatter.format(cal.time))
                 cal.add(java.util.Calendar.DAY_OF_YEAR, 1)
             }
         } catch (e: Exception) {
-            return@combine AttendanceTable()
+            dates.add(formatter.format(Date()))
         }
+
+        // Include any recorded attendance dates so they are never lost from view
+        attendanceList.forEach { att ->
+            if (att.date.isNotBlank()) {
+                dates.add(att.date)
+            }
+        }
+
+        val sortedDates = dates.sorted()
 
         val lookup: Map<Pair<Int, String>, Boolean> = attendanceList
             .associate { Pair(it.employeeId, it.date) to it.present }
 
         val employeeMarks = emps.associate { employee ->
-            val marks = dates.map { date ->
+            val marks = sortedDates.map { date ->
                 lookup[Pair(employee.id, date)] ?: false
             }
             employee.id to marks
         }
 
-        AttendanceTable(dates, employeeMarks)
+        AttendanceTable(sortedDates, employeeMarks)
 
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AttendanceTable())
 
@@ -207,15 +219,16 @@ class ProjectViewModel @Inject constructor(
         val changesToSave = _localAttendanceChanges.toMap()
         _localAttendanceChanges.clear()
         viewModelScope.launch {
-            changesToSave.forEach { (key, isPresent) ->
+            val list = changesToSave.map { (key, isPresent) ->
                 val (employeeId, date) = key
-                attendanceDao.upsert(Attendance(
+                Attendance(
                     projectId = projectId.value,
                     employeeId = employeeId,
                     date = date,
                     present = isPresent
-                ))
+                )
             }
+            syncManager.saveAttendanceList(list)
         }
     }
 
@@ -283,7 +296,7 @@ class ProjectViewModel @Inject constructor(
     fun addEmployeeToProject(employeeId: Int) {
         if (projectId.value == 0) return
         viewModelScope.launch {
-            projectEmployeeDao.insert(ProjectEmployee(
+            syncManager.saveProjectEmployee(ProjectEmployee(
                 projectId = projectId.value,
                 employeeId = employeeId
             ))
@@ -293,7 +306,7 @@ class ProjectViewModel @Inject constructor(
     fun setAttendance(employeeId: Int, date: String, isPresent: Boolean) {
         if (projectId.value == 0) return
         viewModelScope.launch {
-            attendanceDao.upsert(Attendance(
+            syncManager.saveAttendance(Attendance(
                 projectId = projectId.value,
                 employeeId = employeeId,
                 date = date,
@@ -305,12 +318,13 @@ class ProjectViewModel @Inject constructor(
     fun addEmployeesToProject(employeeIds: List<Int>) {
         if (projectId.value == 0 || employeeIds.isEmpty()) return
         viewModelScope.launch {
-            employeeIds.forEach { empId ->
-                projectEmployeeDao.insert(ProjectEmployee(
+            val list = employeeIds.map { empId ->
+                ProjectEmployee(
                     projectId = projectId.value,
                     employeeId = empId
-                ))
+                )
             }
+            syncManager.saveProjectEmployeesList(list)
         }
     }
 

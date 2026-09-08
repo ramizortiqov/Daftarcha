@@ -8,17 +8,17 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface AppUserDao {
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insert(user: AppUser)
 
     @Update
     suspend fun update(user: AppUser)
 
-    @Query("SELECT * FROM app_users WHERE loginId = :loginId LIMIT 1")
+    @Query("SELECT * FROM app_users WHERE LOWER(TRIM(loginId)) = LOWER(TRIM(:loginId)) LIMIT 1")
     suspend fun getUserByLoginId(loginId: String): AppUser?
 
-    @Query("SELECT * FROM app_users WHERE loginId = :loginId AND password = :password LIMIT 1")
-    suspend fun authenticate(loginId: String, password: String): AppUser?
+    @Query("SELECT * FROM app_users WHERE (LOWER(TRIM(loginId)) = LOWER(TRIM(:loginOrName)) OR LOWER(TRIM(name)) = LOWER(TRIM(:loginOrName))) AND password = :password LIMIT 1")
+    suspend fun authenticate(loginOrName: String, password: String): AppUser?
 
     @Query("SELECT * FROM app_users ORDER BY name ASC")
     fun getAllUsersFlow(): Flow<List<AppUser>>
@@ -47,6 +47,9 @@ interface AppUserDao {
     @Query("SELECT COUNT(*) FROM app_users")
     suspend fun getUserCount(): Int
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertAll(users: List<AppUser>)
+
+    @Query("SELECT * FROM app_users WHERE (brigadierId = :brigadierId OR loginId = :brigadierId OR :brigadierId = '') ORDER BY name ASC")
+    fun getUsersByBrigadierFlow(brigadierId: String): Flow<List<AppUser>>
 }

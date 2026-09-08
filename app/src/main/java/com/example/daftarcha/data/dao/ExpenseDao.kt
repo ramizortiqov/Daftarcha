@@ -1,9 +1,8 @@
 package com.example.daftarcha.data.dao
 
 import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Upsert
 import com.example.daftarcha.data.model.Expense
 import kotlinx.coroutines.flow.Flow
 import com.example.daftarcha.data.model.ProjectExpenseTotal // <-- Добавьте импорт
@@ -12,7 +11,7 @@ import com.example.daftarcha.data.model.ProjectExpenseTotal // <-- Добавь�
 interface ExpenseDao {
 
     // Аналог add_expense()
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insert(expense: Expense)
 
     // Аналог get_expenses_for_project()
@@ -31,6 +30,6 @@ interface ExpenseDao {
     @Query("SELECT * FROM expenses")
     suspend fun getAllExpenses(): List<Expense>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertAll(expenses: List<Expense>)
 }
