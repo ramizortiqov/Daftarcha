@@ -4,6 +4,7 @@ plugins {
 //     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp) // <-- ДОБАВЬТЕ ЭТУ СТРОКУ
     alias(libs.plugins.hilt.android)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -20,7 +21,19 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("debugConfig") {
+            storeFile = file("${rootDir}/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debugConfig")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -81,6 +94,10 @@ dependencies {
     // Navigation (Переключение экранов)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.material.icons.extended)
+
+    // Firebase (Firestore)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.firestore)
     // --- КОНЕЦ БЛОКА ---
 
     testImplementation(libs.junit)

@@ -88,4 +88,10 @@ interface AttendanceDao {
     GROUP BY employeeId
 """)
     suspend fun getWorkdaysPerEmployeeForProjects(projectIds: List<Int>): List<EmployeeDaysInProjects>
+
+    @Query("SELECT * FROM attendance")
+    suspend fun getAllAttendance(): List<Attendance>
+
+    @Upsert
+    suspend fun upsertAll(list: List<Attendance>)
 }

@@ -38,4 +38,10 @@ interface PaymentDao {
         AND (projectId IN (:projectIds) OR projectId IS NULL)
     """)
     suspend fun getTotalPaymentsForProjects(employeeId: Int, projectIds: List<Int>): Double
+
+    @Query("SELECT * FROM payments")
+    suspend fun getAllPayments(): List<Payment>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(payments: List<Payment>)
 }

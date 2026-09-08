@@ -35,4 +35,10 @@ interface ProjectEmployeeDao {
     //fun getProjectEmployeeCounts(): Flow<Map<Int, Int>>
     @Query("SELECT projectId FROM project_employees WHERE employeeId = :employeeId")
     fun getProjectIdsForEmployee(employeeId: Int): Flow<List<Int>>
+
+    @Query("SELECT * FROM project_employees")
+    suspend fun getAllProjectEmployees(): List<ProjectEmployee>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(list: List<ProjectEmployee>)
 }

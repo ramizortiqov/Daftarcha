@@ -26,15 +26,25 @@ import kotlin.collections.associate
 // --- УБРАЛИ EmployeeListItem ---
 import com.example.daftarcha.viewmodel.ProjectListItem // Убедитесь, что путь правильный
 
+import com.example.daftarcha.data.auth.AuthManager
+import com.example.daftarcha.data.model.AuthUser
+
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val projectDao: ProjectDao,
     private val employeeDao: EmployeeDao,
     private val projectEmployeeDao: ProjectEmployeeDao,
     private val attendanceDao: AttendanceDao,
-    private val db: DaftarchaDatabase
+    private val db: DaftarchaDatabase,
+    private val authManager: AuthManager
     // --- УБРАЛИ BonusDao и PaymentDao, они здесь больше не нужны ---
 ) : ViewModel() {
+
+    val currentUser: StateFlow<AuthUser?> = authManager.currentUser
+
+    fun logout() {
+        authManager.logout()
+    }
 
     // --- projectListItems (ДЛЯ ВКЛАДКИ ПРОЕКТОВ) ОСТАЕТСЯ БЕЗ ИЗМЕНЕНИЙ ---
     val projectListItems: StateFlow<List<ProjectListItem>> = projectDao.getAllProjects()

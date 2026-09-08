@@ -15,10 +15,11 @@ import com.example.daftarcha.data.model.* // Импортируем все Entit
         Attendance::class,
         Expense::class,
         Bonus::class,
-        Payment::class
+        Payment::class,
+        AppUser::class
     ],
-    // 3. Указываем версию. Если вы измените структуру, нужно будет поменять на 2
-    version = 7,
+    // 3. Указываем версию.
+    version = 8,
     // 4. Отключаем экспорт схемы, чтобы избежать предупреждений при сборке
     exportSchema = false
 )
@@ -35,5 +36,6 @@ abstract class DaftarchaDatabase : RoomDatabase() {
     abstract fun expenseDao(): ExpenseDao
     abstract fun bonusDao(): BonusDao
     abstract fun paymentDao(): PaymentDao
+    abstract fun appUserDao(): AppUserDao
 
 }

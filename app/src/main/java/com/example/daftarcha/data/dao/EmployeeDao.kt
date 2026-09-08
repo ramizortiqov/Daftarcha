@@ -46,4 +46,7 @@ interface EmployeeDao {
     /** ПОЛНОСТЬЮ удаляет сотрудника из базы данных (каскадное удаление) */
     @Query("DELETE FROM employees WHERE id = :employeeId")
     suspend fun deleteEmployeeById(employeeId: Int)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(employees: List<Employee>)
 }

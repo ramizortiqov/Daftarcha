@@ -29,4 +29,10 @@ interface BonusDao {
     // Сумма бонусов для СПИСКА проектов
     @Query("SELECT COALESCE(SUM(amount), 0.0) FROM bonuses WHERE projectId IN (:projectIds)")
     suspend fun getBonusesForProjectList(projectIds: List<Int>): Double
+
+    @Query("SELECT * FROM bonuses")
+    suspend fun getAllBonuses(): List<Bonus>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(bonuses: List<Bonus>)
 }

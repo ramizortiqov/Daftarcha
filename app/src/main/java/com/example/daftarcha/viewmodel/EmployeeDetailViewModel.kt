@@ -43,6 +43,11 @@ import java.util.TimeZone // Для работы с датами в combine
 import kotlin.collections.associate // Для преобразования List в Map
 
 
+import com.example.daftarcha.data.auth.AuthManager
+import com.example.daftarcha.data.dao.AppUserDao
+import com.example.daftarcha.data.model.AppUser
+import com.example.daftarcha.data.model.UserRole
+
 /**
  * Определяет, какой диалог в EmployeeDetailScreen открыт
  */
@@ -50,7 +55,8 @@ enum class EmployeeDialog {
     NONE,
     ADD_PAYMENT,
     EDIT_EMPLOYEE,
-    FIRE_EMPLOYEE
+    FIRE_EMPLOYEE,
+    ACCOUNT_CREDENTIALS
 }
 
 @HiltViewModel
@@ -61,11 +67,19 @@ class EmployeeDetailViewModel @Inject constructor(
     private val bonusDao: BonusDao,
     private val expenseDao: ExpenseDao,// <-- ДОБАВЛЕНО
     private val projectEmployeeDao: ProjectEmployeeDao, // <-- ДОБАВЛЕНО
+    private val appUserDao: AppUserDao,
+    private val authManager: AuthManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     // --- ИДЕНТИФИКАЦИЯ ---
     private val employeeId: StateFlow<Int> = savedStateHandle.getStateFlow("employeeId", 0)
+
+    val currentUser = authManager.currentUser
+
+    val employeeAccount: StateFlow<AppUser?> = employeeId.flatMapLatest { id ->
+        if (id > 0) appUserDao.getUserByEmployeeIdFlow(id) else flowOf(null)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     // --- СОСТОЯНИЕ UI ---
     private val _dialogState = MutableStateFlow(EmployeeDialog.NONE)
@@ -242,6 +256,32 @@ class EmployeeDetailViewModel @Inject constructor(
                     )
                 )
                 Log.d("ViewModel", "Employee updated: ${currentEmployee.id} - $name") // Optional: Log success
+            }
+        }
+    }
+
+    fun saveAccountCredentials(
+        loginId: String,
+        pass: String,
+        role: UserRole,
+        onResult: (Boolean, String?) -> Unit
+    ) {
+        val empId = employeeId.value
+        if (empId <= 0) return
+
+        val userRoleToSet = if (currentUser.value?.role == UserRole.BRIGADIER) role else UserRole.WORKER
+
+        viewModelScope.launch {
+            val result = authManager.createOrUpdateEmployeeAccount(
+                employeeId = empId,
+                loginId = loginId,
+                password = pass,
+                role = userRoleToSet
+            )
+            if (result.isSuccess) {
+                onResult(true, null)
+            } else {
+                onResult(false, result.exceptionOrNull()?.message)
             }
         }
     }

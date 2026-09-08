@@ -34,6 +34,8 @@ import java.io.File
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
+import com.example.daftarcha.data.model.UserRole
+
 @Composable
 fun DashboardTab(
     viewModel: HomeViewModel = hiltViewModel(),
@@ -45,6 +47,8 @@ fun DashboardTab(
 ) {
     val projectCount by viewModel.projectCount.collectAsState()
     val employeeCount by viewModel.employeeCount.collectAsState()
+    val currentUser by viewModel.currentUser.collectAsState()
+    val isBrigadier = currentUser?.role == UserRole.BRIGADIER
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     Column(
@@ -88,18 +92,20 @@ fun DashboardTab(
             fontWeight = FontWeight.Bold
         )
 
-        Button(
-            onClick = onAddProjectClick,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("ЯНГИ ИШ ҚЎШИШ")
-        }
+        if (isBrigadier) {
+            Button(
+                onClick = onAddProjectClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("ЯНГИ ИШ ҚЎШИШ")
+            }
 
-        Button(
-            onClick = onAddEmployeeClick,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("ШЕРИК ҚЎШИШ")
+            Button(
+                onClick = onAddEmployeeClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("ШЕРИК ҚЎШИШ")
+            }
         }
         OutlinedButton(
             onClick = {

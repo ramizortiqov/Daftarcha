@@ -21,6 +21,8 @@ hiltNavigation = "1.2.0"
 kotlinComposeCompiler = "1.5.11"
 # Версия KSP должна соответствовать вашей версии Kotlin (2.0.21)
 ksp = "1.9.23-1.0.20"
+googleServices = "4.4.2"
+firebaseBom = "33.7.0"
 # --- КОНЕЦ ---
 
 [libraries]
@@ -63,6 +65,10 @@ hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-com
 # Navigation (Переключение экранов)
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
 
+# Firebase
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
+
 # --- КОНЕЦ ---
 
 [plugins]
@@ -73,4 +79,5 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 # --- ДОБАВЛЕНО ---
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
 # --- КОНЕЦ ---

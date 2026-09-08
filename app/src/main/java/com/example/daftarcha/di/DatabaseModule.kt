@@ -55,4 +55,7 @@ object DatabaseModule {
 
     @Provides
     fun providePaymentDao(db: DaftarchaDatabase) = db.paymentDao()
+
+    @Provides
+    fun provideAppUserDao(db: DaftarchaDatabase) = db.appUserDao()
 }

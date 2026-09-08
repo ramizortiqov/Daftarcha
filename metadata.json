@@ -1,0 +1,6 @@
+{
+  "name": "Дафтарча",
+  "description": "Employee attendance, projects, bonuses, and salary calculation manager",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

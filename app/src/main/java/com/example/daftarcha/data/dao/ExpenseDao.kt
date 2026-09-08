@@ -27,4 +27,10 @@ interface ExpenseDao {
     suspend fun getExpensesForProjectList(projectIds: List<Int>): Double
     @Query("SELECT projectId, COALESCE(SUM(amount), 0.0) as total FROM expenses GROUP BY projectId")
     fun getAllExpensesGroupedByProject(): Flow<List<ProjectExpenseTotal>>
+
+    @Query("SELECT * FROM expenses")
+    suspend fun getAllExpenses(): List<Expense>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(expenses: List<Expense>)
 }

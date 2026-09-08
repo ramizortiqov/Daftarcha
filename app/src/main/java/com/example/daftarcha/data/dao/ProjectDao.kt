@@ -44,4 +44,9 @@ interface ProjectDao {
     @Query("DELETE FROM projects WHERE id = :projectId")
     suspend fun deleteProjectById(projectId: Int)
 
+    @Query("SELECT * FROM projects")
+    suspend fun getAllProjectsList(): List<Project>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(projects: List<Project>)
 }
