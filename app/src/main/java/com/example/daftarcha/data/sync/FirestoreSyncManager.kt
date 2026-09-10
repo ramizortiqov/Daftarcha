@@ -679,4 +679,48 @@ class FirestoreSyncManager @Inject constructor(
             Log.w(TAG, "Failed to delete employee $employeeId from cloud: ${e.message}")
         }
     }
+
+    /**
+     * Очистка начислений (посещаемости) и выплат для сотрудника
+     */
+    suspend fun deleteAttendanceAndPaymentsForEmployee(employeeId: Int) = withContext(Dispatchers.IO) {
+        try {
+            val bId = getCurrentBrigadierId()
+            val attCollection = if (bId.isNotBlank()) getBrigadierCollection(bId, "attendance") else firestore.collection("attendance")
+            val payCollection = if (bId.isNotBlank()) getBrigadierCollection(bId, "payments") else firestore.collection("payments")
+
+            // 1. Удалить посещаемость сотрудника из Firestore
+            val attDocs = attCollection.whereEqualTo("employeeId", employeeId).get().await()
+            attDocs.documents.chunked(400).forEach { chunk ->
+                val batch = firestore.batch()
+                chunk.forEach { doc -> batch.delete(doc.reference) }
+                batch.commit().await()
+            }
+
+            // 2. Удалить выплаты сотрудника из Firestore
+            val payDocs = payCollection.whereEqualTo("employeeId", employeeId).get().await()
+            payDocs.documents.chunked(400).forEach { chunk ->
+                val batch = firestore.batch()
+                chunk.forEach { doc -> batch.delete(doc.reference) }
+                batch.commit().await()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to delete attendance and payments from cloud for employee $employeeId: ${e.message}")
+        }
+    }
+
+    /**
+     * Удаление отдельной выплаты из облака
+     */
+    suspend fun deletePaymentFromCloud(paymentId: Int) = withContext(Dispatchers.IO) {
+        try {
+            val bId = getCurrentBrigadierId()
+            if (bId.isNotBlank()) {
+                getBrigadierCollection(bId, "payments").document(paymentId.toString()).delete().await()
+            }
+            firestore.collection("payments").document(paymentId.toString()).delete().await()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to delete payment $paymentId from cloud: ${e.message}")
+        }
+    }
 }

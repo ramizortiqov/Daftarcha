@@ -91,6 +91,9 @@ interface AttendanceDao {
     @Query("SELECT * FROM attendance")
     suspend fun getAllAttendance(): List<Attendance>
 
+    @Query("DELETE FROM attendance WHERE employeeId = :employeeId")
+    suspend fun deleteAttendanceByEmployeeId(employeeId: Int)
+
     @Upsert
     suspend fun upsertAll(list: List<Attendance>)
 }

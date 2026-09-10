@@ -41,6 +41,12 @@ interface PaymentDao {
     @Query("SELECT * FROM payments")
     suspend fun getAllPayments(): List<Payment>
 
+    @Query("DELETE FROM payments WHERE employeeId = :employeeId")
+    suspend fun deletePaymentsByEmployeeId(employeeId: Int)
+
+    @Query("DELETE FROM payments WHERE id = :paymentId")
+    suspend fun deletePaymentById(paymentId: Int)
+
     @Upsert
     suspend fun insertAll(payments: List<Payment>)
 }

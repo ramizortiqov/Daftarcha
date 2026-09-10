@@ -9,10 +9,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.PersonRemove
+import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material3.*
@@ -55,6 +57,7 @@ fun EmployeeDetailScreen(
 
     val currentEmployee = employee
     val isBrigadier = currentUser?.role == UserRole.BRIGADIER
+    var paymentToDelete by remember { mutableStateOf<Payment?>(null) }
 
     Scaffold(
         topBar = {
@@ -192,14 +195,31 @@ fun EmployeeDetailScreen(
                     balance = balance
                 )
 
-                // Pay button
-                Button(
-                    onClick = { viewModel.openDialog(EmployeeDialog.ADD_PAYMENT) },
-                    modifier = Modifier.fillMaxWidth()
+                // Pay and Reset buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(Icons.Default.Payment, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("ПУЛ БЕРИШ")
+                    Button(
+                        onClick = { viewModel.openDialog(EmployeeDialog.ADD_PAYMENT) },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.Payment, contentDescription = null)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("ПУЛ БЕРИШ")
+                    }
+
+                    OutlinedButton(
+                        onClick = { viewModel.openDialog(EmployeeDialog.RESET_FINANCIALS) },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(Icons.Default.RestartAlt, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("ҲИСОБНИ ЁПИШ")
+                    }
                 }
 
                 // Payment history
@@ -241,6 +261,15 @@ fun EmployeeDetailScreen(
                             },
                             leadingContent = {
                                 Icon(Icons.Default.Payment, contentDescription = "Тўлов", tint = MaterialTheme.colorScheme.primary)
+                            },
+                            trailingContent = {
+                                IconButton(onClick = { paymentToDelete = payment }) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Тўловни ўчириш",
+                                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                                    )
+                                }
                             }
                         )
                         Divider()
@@ -279,6 +308,19 @@ fun EmployeeDetailScreen(
                 )
             }
         }
+        EmployeeDialog.RESET_FINANCIALS -> {
+            ConfirmDialog(
+                title = "Ҳисоб-китобни ёпиш (тозалаш)?",
+                text = "'${currentEmployee?.name}' бўйича барча ишланган кунлар, тўловлар ва баланс 0 га туширилади (тозаланади). Давом этасизми?",
+                onConfirm = {
+                    viewModel.resetFinancials()
+                    Toast.makeText(context, "Ҳисоб-китоб тозаланди", Toast.LENGTH_SHORT).show()
+                },
+                onDismiss = { viewModel.dismissDialog() },
+                confirmButtonText = "Ҳа, тозалаш",
+                confirmButtonColor = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            )
+        }
         EmployeeDialog.FIRE_EMPLOYEE -> {
             ConfirmDialog(
                 title = "Шерикни ишдан бўшатишми?",
@@ -313,5 +355,21 @@ fun EmployeeDetailScreen(
             }
         }
         EmployeeDialog.NONE -> {}
+    }
+
+    // Confirmation dialog for deleting a single payment
+    paymentToDelete?.let { payment ->
+        ConfirmDialog(
+            title = "Тўловни ўчиришми?",
+            text = "${payment.amount} с тўлов ёзувини ўчирмоқчимисиз?",
+            onConfirm = {
+                viewModel.deletePayment(payment.id)
+                paymentToDelete = null
+                Toast.makeText(context, "Тўлов ўчирилди", Toast.LENGTH_SHORT).show()
+            },
+            onDismiss = { paymentToDelete = null },
+            confirmButtonText = "Ўчириш",
+            confirmButtonColor = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+        )
     }
 }

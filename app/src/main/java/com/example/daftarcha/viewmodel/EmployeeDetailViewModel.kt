@@ -47,6 +47,7 @@ import com.example.daftarcha.data.auth.AuthManager
 import com.example.daftarcha.data.dao.AppUserDao
 import com.example.daftarcha.data.model.AppUser
 import com.example.daftarcha.data.model.UserRole
+import com.example.daftarcha.data.sync.FirestoreSyncManager
 
 /**
  * Определяет, какой диалог в EmployeeDetailScreen открыт
@@ -56,6 +57,7 @@ enum class EmployeeDialog {
     ADD_PAYMENT,
     EDIT_EMPLOYEE,
     FIRE_EMPLOYEE,
+    RESET_FINANCIALS,
     ACCOUNT_CREDENTIALS
 }
 
@@ -69,6 +71,7 @@ class EmployeeDetailViewModel @Inject constructor(
     private val projectEmployeeDao: ProjectEmployeeDao, // <-- ДОБАВЛЕНО
     private val appUserDao: AppUserDao,
     private val authManager: AuthManager,
+    private val syncManager: FirestoreSyncManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -283,6 +286,33 @@ class EmployeeDetailViewModel @Inject constructor(
             } else {
                 onResult(false, result.exceptionOrNull()?.message)
             }
+        }
+    }
+
+    /**
+     * Очистка / сброс расчетов сотрудника:
+     * удаляет полученные выплаты (payments) и отработанные дни/посещаемость (attendance)
+     * локально в Room и синхронизирует с Firestore.
+     */
+    fun resetFinancials() {
+        val empId = employeeId.value
+        if (empId <= 0) return
+        viewModelScope.launch {
+            paymentDao.deletePaymentsByEmployeeId(empId)
+            attendanceDao.deleteAttendanceByEmployeeId(empId)
+            syncManager.deleteAttendanceAndPaymentsForEmployee(empId)
+            dismissDialog()
+            Log.d("ViewModel", "Financials reset for employee $empId")
+        }
+    }
+
+    /**
+     * Удаление одной выплаты
+     */
+    fun deletePayment(paymentId: Int) {
+        viewModelScope.launch {
+            paymentDao.deletePaymentById(paymentId)
+            syncManager.deletePaymentFromCloud(paymentId)
         }
     }
 }
