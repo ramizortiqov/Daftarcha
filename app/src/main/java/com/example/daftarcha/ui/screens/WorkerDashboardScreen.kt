@@ -26,8 +26,13 @@ fun WorkerDashboardScreen(
 ) {
     val currentUser by viewModel.currentUser.collectAsState()
     val workerData by viewModel.workerData.collectAsState()
+    val showEarningsAndDebt by viewModel.showWorkerEarningsAndDebt.collectAsState()
 
     var showLogoutDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        viewModel.refresh()
+    }
 
     Scaffold(
         topBar = {
@@ -47,6 +52,13 @@ fun WorkerDashboardScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { viewModel.refresh() }) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Янгилаш",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                     IconButton(onClick = { showLogoutDialog = true }) {
                         Icon(
                             imageVector = Icons.Default.Logout,
@@ -135,7 +147,8 @@ fun WorkerDashboardScreen(
                         workdays = data.totalWorkdays,
                         earned = data.totalEarned,
                         paid = data.totalPaid,
-                        balance = data.balance
+                        balance = data.balance,
+                        showEarningsAndDebt = showEarningsAndDebt
                     )
                 }
 
@@ -227,22 +240,24 @@ fun WorkerDashboardScreen(
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        text = "Ушбу ишда ишлади:",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        text = "%.2f с".format(proj.earnedInProject),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF009900)
-                                    )
+                                if (showEarningsAndDebt) {
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = "Ушбу ишда ишлади:",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = "%.2f с".format(proj.earnedInProject),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF009900)
+                                        )
+                                    }
                                 }
 
                                 Row(

@@ -1,6 +1,9 @@
 package com.example.daftarcha.ui.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -14,7 +17,8 @@ fun EmployeeStatsCard(
     workdays: Int,
     earned: Double,
     paid: Double,
-    balance: Double
+    balance: Double,
+    showEarningsAndDebt: Boolean = true
 ) {
     val balanceColor = when {
         balance > 0.01 -> Color(0xFF009900)
@@ -28,41 +32,86 @@ fun EmployeeStatsCard(
         shape = MaterialTheme.shapes.large
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                StatItem(
-                    title = "Иш кунлари",
-                    value = "$workdays",
-                    modifier = Modifier.weight(1f)
-                )
-                VerticalDivider()
-                StatItem(
-                    title = "Ишлади",
-                    value = "%.2f с".format(earned),
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            if (showEarningsAndDebt) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    StatItem(
+                        title = "Иш кунлари",
+                        value = "$workdays",
+                        modifier = Modifier.weight(1f)
+                    )
+                    VerticalDivider()
+                    StatItem(
+                        title = "Ишлади",
+                        value = "%.2f с".format(earned),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
 
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
+                Divider(modifier = Modifier.padding(vertical = 8.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                StatItem(
-                    title = "Олди",
-                    value = "%.2f с".format(paid),
-                    modifier = Modifier.weight(1f)
-                )
-                VerticalDivider()
-                StatItem(
-                    title = "Тўланиши керак",
-                    value = "%.2f с".format(balance),
-                    valueColor = balanceColor,
-                    modifier = Modifier.weight(1f)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    StatItem(
+                        title = "Олди",
+                        value = "%.2f с".format(paid),
+                        modifier = Modifier.weight(1f)
+                    )
+                    VerticalDivider()
+                    StatItem(
+                        title = "Тўланиши керак",
+                        value = "%.2f с".format(balance),
+                        valueColor = balanceColor,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    StatItem(
+                        title = "Иш кунлари",
+                        value = "$workdays кун",
+                        modifier = Modifier.weight(1f)
+                    )
+                    VerticalDivider()
+                    StatItem(
+                        title = "Олди (тўланган)",
+                        value = "%.2f с".format(paid),
+                        valueColor = Color(0xFF009900),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.VisibilityOff,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = "Иш ҳақи ва қарз ҳисоб-китоби бригадир томонидан ёпилган",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         }
     }

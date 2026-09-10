@@ -9,6 +9,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,6 +32,7 @@ fun UserManagementScreen(
 ) {
     val users by viewModel.allAppUsers.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
+    val showWorkerEarningsAndDebt by viewModel.showWorkerEarningsAndDebt.collectAsState()
 
     var userToEditRole by remember { mutableStateOf<AppUser?>(null) }
     var selectedNewRole by remember { mutableStateOf<UserRole>(UserRole.WORKER) }
@@ -53,6 +57,57 @@ fun UserManagementScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            if (isBrigadier) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (showWorkerEarningsAndDebt) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = null,
+                                        tint = if (showWorkerEarningsAndDebt) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                                    )
+                                    Text(
+                                        text = "Шерикларга пулни кўрсатиш",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = if (showWorkerEarningsAndDebt)
+                                        "Ёқилган: оддий шериклар ўз шахсий кабинетида ишланган пул ва қарзни кўради."
+                                    else
+                                        "Ўчирилган: оддий шерикларга ишланган пул ва қарз кўрсатилмайди (фақат иш кунлари ва берилган пул кўринади).",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = showWorkerEarningsAndDebt,
+                                onCheckedChange = { viewModel.setShowWorkerEarningsAndDebt(it) }
+                            )
+                        }
+                    }
+                }
+            }
+
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),

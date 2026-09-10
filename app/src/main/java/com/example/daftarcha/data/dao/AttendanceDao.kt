@@ -8,7 +8,6 @@ import com.example.daftarcha.data.model.ProjectTotalWorkdays
 import kotlinx.coroutines.flow.Flow
 
 data class ProjectEmployeeWorkdays(val projectId: Int, val workdays: Int)
-data class ProjectTotalWorkdays(val projectId: Int, val count: Int)
 @Dao
 interface AttendanceDao {
 

@@ -66,6 +66,8 @@ class FirestoreSyncManager @Inject constructor(
     fun getCurrentBrigadierId(): String {
         val bId = authPrefs.getString("saved_brigadier_id", null)
         if (!bId.isNullOrBlank()) return bId
+        val lastBId = authPrefs.getString("last_active_brigadier_id", null)
+        if (!lastBId.isNullOrBlank()) return lastBId
         val role = authPrefs.getString("saved_user_role", null)
         val loginId = authPrefs.getString("saved_login_id", null) ?: ""
         return if (role == UserRole.BRIGADIER.name) loginId else ""
@@ -320,12 +322,52 @@ class FirestoreSyncManager @Inject constructor(
         } catch (e: Exception) {
             Log.w(TAG, "AppUsers download warning: ${e.message}")
         }
+
+        // 9. Brigadier Document & Settings
+        try {
+            val bDoc = firestore.collection("brigadiers").document(brigadierId).get().await()
+            if (bDoc.exists()) {
+                val showEarnings = bDoc.getBoolean("showWorkerEarningsAndDebt") ?: false
+                val authPrefs = context.getSharedPreferences("daftarcha_auth_prefs", Context.MODE_PRIVATE)
+                authPrefs.edit()
+                    .putBoolean("show_worker_earnings_and_debt_$brigadierId", showEarnings)
+                    .putBoolean("show_worker_earnings_and_debt_global", showEarnings)
+                    .apply()
+            }
+            val globalDoc = firestore.collection("app_settings").document("worker_visibility").get().await()
+            if (globalDoc.exists()) {
+                val showEarnings = globalDoc.getBoolean("showWorkerEarningsAndDebt") ?: false
+                val authPrefs = context.getSharedPreferences("daftarcha_auth_prefs", Context.MODE_PRIVATE)
+                authPrefs.edit().putBoolean("show_worker_earnings_and_debt_global", showEarnings).apply()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Brigadier doc download error: ${e.message}")
+        }
     }
 
     /**
      * Выгрузка локальных данных Room в Firestore для конкретного бригадира
      */
     private suspend fun uploadToFirestore(brigadierId: String): SyncSummary {
+        // 0. Brigadier document & settings
+        try {
+            val authPrefs = context.getSharedPreferences("daftarcha_auth_prefs", Context.MODE_PRIVATE)
+            val showEarnings = authPrefs.getBoolean(
+                "show_worker_earnings_and_debt_$brigadierId",
+                authPrefs.getBoolean("show_worker_earnings_and_debt_global", false)
+            )
+            val bMap = hashMapOf<String, Any>(
+                "id" to brigadierId,
+                "showWorkerEarningsAndDebt" to showEarnings,
+                "updatedAt" to System.currentTimeMillis()
+            )
+            firestore.collection("brigadiers").document(brigadierId).set(bMap, SetOptions.merge()).await()
+            firestore.collection("app_settings").document("worker_visibility")
+                .set(mapOf("showWorkerEarningsAndDebt" to showEarnings, "updatedAt" to System.currentTimeMillis()), SetOptions.merge()).await()
+        } catch (e: Exception) {
+            Log.w(TAG, "Brigadier document upload warning: ${e.message}")
+        }
+
         // 1. Projects of this brigadier
         val localProjects = projectDao.getProjectsForBrigadierList(brigadierId)
         val projectIds = localProjects.map { it.id }.toSet()

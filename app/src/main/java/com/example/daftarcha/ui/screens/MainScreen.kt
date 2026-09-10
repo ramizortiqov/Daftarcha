@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -59,8 +60,10 @@ fun MainScreen(
     val navController = rememberNavController()
     val currentUser by homeViewModel.currentUser.collectAsState()
     val isBrigadier = currentUser?.role == UserRole.BRIGADIER
+    val showWorkerEarningsAndDebt by homeViewModel.showWorkerEarningsAndDebt.collectAsState()
     val syncStatus by syncViewModel.syncStatus.collectAsState()
     var showLogoutConfirm by remember { mutableStateOf(false) }
+    var showBrigadierMenuDialog by remember { mutableStateOf(false) }
 
     // Auto-sync with Firebase in background on start
     LaunchedEffect(Unit) {
@@ -108,8 +111,15 @@ fun MainScreen(
                         }
                     }
 
-                    // Only Brigadier can open User & Role management
+                    // Only Brigadier can open Brigadier menu and User & Role management
                     if (isBrigadier) {
+                        IconButton(onClick = { showBrigadierMenuDialog = true }) {
+                            Icon(
+                                Icons.Default.Tune,
+                                contentDescription = "Бригадир созламалари ва менюси",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                         IconButton(onClick = { navController.navigate(Screen.UserManagement.route) }) {
                             Icon(
                                 Icons.Default.AdminPanelSettings,
@@ -304,6 +314,88 @@ fun MainScreen(
             dismissButton = {
                 TextButton(onClick = { showLogoutConfirm = false }) {
                     Text("Бекор қилиш")
+                }
+            }
+        )
+    }
+
+    if (showBrigadierMenuDialog) {
+        AlertDialog(
+            onDismissRequest = { showBrigadierMenuDialog = false },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Tune,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text("Бригадир менюси")
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                                Text(
+                                    text = "Шерикларга пулни кўрсатиш",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = if (showWorkerEarningsAndDebt)
+                                        "Ёқилган: оддий шериклар ишлаган пули ва қарзини кўра олади"
+                                    else
+                                        "Ўчирилган: оддий шериклардан ишланган пул ва қарз яширилган",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = showWorkerEarningsAndDebt,
+                                onCheckedChange = { homeViewModel.setShowWorkerEarningsAndDebt(it) }
+                            )
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            showBrigadierMenuDialog = false
+                            navController.navigate(Screen.UserManagement.route)
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            Icons.Default.AdminPanelSettings,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Фойдаланувчилар ва роллар")
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = { showBrigadierMenuDialog = false }) {
+                    Text("Тайёр")
                 }
             }
         )

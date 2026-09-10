@@ -11,6 +11,7 @@ import com.example.daftarcha.data.model.AuthUser
 import com.example.daftarcha.data.model.Employee
 import com.example.daftarcha.data.model.UserRole
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -45,6 +46,11 @@ class AuthManager @Inject constructor(
     private val _currentUser = MutableStateFlow<AuthUser?>(null)
     val currentUser: StateFlow<AuthUser?> = _currentUser.asStateFlow()
 
+    private val _showWorkerEarningsAndDebt = MutableStateFlow(false)
+    val showWorkerEarningsAndDebt: StateFlow<Boolean> = _showWorkerEarningsAndDebt.asStateFlow()
+
+    private var settingsListenerRegistration: ListenerRegistration? = null
+
     private val _isInitialized = MutableStateFlow(false)
     val isInitialized: StateFlow<Boolean> = _isInitialized.asStateFlow()
 
@@ -65,11 +71,12 @@ class AuthManager @Inject constructor(
                 }
 
                 if (user != null) {
-                    val effectiveBId = if (user.role == UserRole.BRIGADIER) {
-                        user.loginId
-                    } else {
-                        user.brigadierId.ifBlank {
-                            prefs.getString("saved_brigadier_id", "") ?: ""
+                    val effectiveBId = resolveEffectiveBrigadierId(user)
+                    if (user.brigadierId != effectiveBId && effectiveBId.isNotBlank()) {
+                        try {
+                            appUserDao.update(user.copy(brigadierId = effectiveBId))
+                        } catch (e: Exception) {
+                            // ignore
                         }
                     }
 
@@ -81,6 +88,8 @@ class AuthManager @Inject constructor(
                         phone = user.phone,
                         brigadierId = effectiveBId
                     )
+
+                    loadAndListenBrigadierSettings(effectiveBId)
 
                     // Auto-assign existing unassigned legacy data to this brigadier
                     if (user.role == UserRole.BRIGADIER) {
@@ -197,6 +206,7 @@ class AuthManager @Inject constructor(
 
             // Запоминаем текущего пользователя и сохраняем сессию
             _currentUser.value = authUser
+            loadAndListenBrigadierSettings(finalLoginId)
             prefs.edit()
                 .putString("saved_login_id", appUser.loginId)
                 .putString("saved_user_role", appUser.role.name)
@@ -234,10 +244,13 @@ class AuthManager @Inject constructor(
                 return@withContext Result.failure(IllegalArgumentException("ID/исм ёки парол нотўғри"))
             }
 
-            val effectiveBId = if (user.role == UserRole.BRIGADIER) {
-                user.loginId
-            } else {
-                user.brigadierId.ifBlank { user.loginId }
+            val effectiveBId = resolveEffectiveBrigadierId(user)
+            if (user.brigadierId != effectiveBId && effectiveBId.isNotBlank()) {
+                try {
+                    appUserDao.update(user.copy(brigadierId = effectiveBId))
+                } catch (e: Exception) {
+                    // ignore
+                }
             }
 
             // If this is a brigadier logging in, assign any legacy unassigned projects/employees
@@ -260,6 +273,7 @@ class AuthManager @Inject constructor(
             )
 
             _currentUser.value = authUser
+            loadAndListenBrigadierSettings(effectiveBId)
             prefs.edit()
                 .putString("saved_login_id", user.loginId)
                 .putString("saved_user_role", user.role.name)
@@ -278,8 +292,14 @@ class AuthManager @Inject constructor(
     }
 
     private fun clearSession() {
+        settingsListenerRegistration?.remove()
+        settingsListenerRegistration = null
+        // Keep _showWorkerEarningsAndDebt.value intact across logouts on the device
         _currentUser.value = null
-        prefs.edit().clear().apply()
+        prefs.edit()
+            .remove("saved_login_id")
+            .remove("saved_user_role")
+            .apply()
     }
 
     /**
@@ -306,7 +326,21 @@ class AuthManager @Inject constructor(
                 appUserDao.deleteUser(existingAccountForEmp.loginId)
             }
 
-            val currentBrigadierId = _currentUser.value?.effectiveBrigadierId ?: ""
+            var currentBrigadierId = _currentUser.value?.effectiveBrigadierId ?: ""
+            if (currentBrigadierId.isBlank()) {
+                currentBrigadierId = prefs.getString("last_active_brigadier_id", "") ?: ""
+            }
+            if (currentBrigadierId.isBlank() && employee.brigadierId.isNotBlank()) {
+                currentBrigadierId = employee.brigadierId
+            }
+
+            if (employee.brigadierId.isBlank() && currentBrigadierId.isNotBlank()) {
+                try {
+                    employeeDao.update(employee.copy(brigadierId = currentBrigadierId))
+                } catch (e: Exception) {
+                    // ignore
+                }
+            }
 
             val appUser = AppUser(
                 loginId = loginId.trim(),
@@ -429,5 +463,194 @@ class AuthManager @Inject constructor(
         } catch (e: Exception) {
             Log.w(TAG, "Delete user from cloud warning: ${e.message}")
         }
+    }
+
+    private suspend fun resolveEffectiveBrigadierId(user: AppUser): String {
+        if (user.role == UserRole.BRIGADIER) {
+            prefs.edit().putString("last_active_brigadier_id", user.loginId).apply()
+            return user.loginId
+        }
+
+        // 1. If user already has a valid brigadierId pointing to someone else
+        if (user.brigadierId.isNotBlank() && user.brigadierId != user.loginId) {
+            return user.brigadierId
+        }
+
+        // 2. Check linked employee record
+        if (user.employeeId != null && user.employeeId > 0) {
+            try {
+                val emp = employeeDao.getEmployeeById(user.employeeId)
+                if (emp != null && emp.brigadierId.isNotBlank()) {
+                    return emp.brigadierId
+                }
+            } catch (e: Exception) {
+                // ignore
+            }
+        }
+
+        // 3. Check if any project in Room has a brigadierId
+        try {
+            val projects = projectDao.getAllProjectsList()
+            val projBId = projects.firstOrNull { it.brigadierId.isNotBlank() }?.brigadierId
+            if (!projBId.isNullOrBlank()) {
+                return projBId
+            }
+        } catch (e: Exception) {
+            // ignore
+        }
+
+        // 4. Check if any employee in DB has a brigadierId
+        try {
+            val emps = employeeDao.getAllEmployeesSuspend()
+            val empBId = emps.firstOrNull { it.brigadierId.isNotBlank() }?.brigadierId
+            if (!empBId.isNullOrBlank()) {
+                return empBId
+            }
+        } catch (e: Exception) {
+            // ignore
+        }
+
+        // 5. Check if any AppUser is BRIGADIER
+        try {
+            val brigadierUser = appUserDao.getAllUsers().firstOrNull { it.role == UserRole.BRIGADIER }
+            if (brigadierUser != null && brigadierUser.loginId.isNotBlank()) {
+                return brigadierUser.loginId
+            }
+        } catch (e: Exception) {
+            // ignore
+        }
+
+        // 6. Check preferences for last_active_brigadier_id or saved_brigadier_id
+        val lastBId = prefs.getString("last_active_brigadier_id", "") ?: ""
+        if (lastBId.isNotBlank()) return lastBId
+
+        val savedBId = prefs.getString("saved_brigadier_id", "") ?: ""
+        if (savedBId.isNotBlank() && savedBId != user.loginId) return savedBId
+
+        return ""
+    }
+
+    /**
+     * Загружает настройки бригадира (включая флаг показа заработка шерикам)
+     * и подписывается на обновления в Firestore в реальном времени.
+     */
+    fun loadAndListenBrigadierSettings(brigadierId: String) {
+        val resolvedBId = if (brigadierId.isNotBlank()) {
+            brigadierId
+        } else {
+            prefs.getString("last_active_brigadier_id", "") ?: ""
+        }
+
+        // 1. Сначала читаем локальный кэш: сначала персональный, затем глобальный
+        val cached = if (resolvedBId.isNotBlank()) {
+            prefs.getBoolean(
+                "show_worker_earnings_and_debt_$resolvedBId",
+                prefs.getBoolean("show_worker_earnings_and_debt_global", false)
+            )
+        } else {
+            prefs.getBoolean("show_worker_earnings_and_debt_global", false)
+        }
+        _showWorkerEarningsAndDebt.value = cached
+
+        settingsListenerRegistration?.remove()
+        settingsListenerRegistration = null
+
+        // 2. Слушаем глобальный документ в реальном времени
+        try {
+            firestore.collection("app_settings").document("worker_visibility")
+                .addSnapshotListener { snapshot, error ->
+                    if (error == null && snapshot != null && snapshot.exists()) {
+                        val enabled = snapshot.getBoolean("showWorkerEarningsAndDebt")
+                        if (enabled != null) {
+                            _showWorkerEarningsAndDebt.value = enabled
+                            prefs.edit().putBoolean("show_worker_earnings_and_debt_global", enabled).apply()
+                            if (resolvedBId.isNotBlank()) {
+                                prefs.edit().putBoolean("show_worker_earnings_and_debt_$resolvedBId", enabled).apply()
+                            }
+                        }
+                    }
+                }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to attach global worker settings listener: ${e.message}")
+        }
+
+        // 3. Если известен ID бригадира, слушаем также его персональный документ
+        if (resolvedBId.isNotBlank()) {
+            try {
+                settingsListenerRegistration = firestore.collection("brigadiers")
+                    .document(resolvedBId)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error == null && snapshot != null && snapshot.exists()) {
+                            val enabled = snapshot.getBoolean("showWorkerEarningsAndDebt")
+                            if (enabled != null) {
+                                _showWorkerEarningsAndDebt.value = enabled
+                                prefs.edit().putBoolean("show_worker_earnings_and_debt_$resolvedBId", enabled).apply()
+                                prefs.edit().putBoolean("show_worker_earnings_and_debt_global", enabled).apply()
+                            }
+                        }
+                    }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to attach brigadier settings listener: ${e.message}")
+            }
+        }
+    }
+
+    suspend fun setShowWorkerEarningsAndDebt(enabled: Boolean): Unit = withContext(Dispatchers.IO) {
+        val currentBrigadierId = _currentUser.value?.effectiveBrigadierId ?: ""
+        val brigadierId = if (currentBrigadierId.isNotBlank()) {
+            currentBrigadierId
+        } else {
+            prefs.getString("last_active_brigadier_id", "") ?: ""
+        }
+
+        _showWorkerEarningsAndDebt.value = enabled
+        prefs.edit()
+            .putBoolean("show_worker_earnings_and_debt_global", enabled)
+            .apply()
+
+        if (brigadierId.isNotBlank()) {
+            prefs.edit()
+                .putBoolean("show_worker_earnings_and_debt_$brigadierId", enabled)
+                .putString("last_active_brigadier_id", brigadierId)
+                .apply()
+        }
+
+        try {
+            val globalSettingsMap = hashMapOf<String, Any>(
+                "showWorkerEarningsAndDebt" to enabled,
+                "updatedAt" to System.currentTimeMillis()
+            )
+            firestore.collection("app_settings").document("worker_visibility")
+                .set(globalSettingsMap, SetOptions.merge()).await()
+
+            if (brigadierId.isNotBlank()) {
+                val bMap = hashMapOf<String, Any>(
+                    "id" to brigadierId,
+                    "showWorkerEarningsAndDebt" to enabled,
+                    "updatedAt" to System.currentTimeMillis()
+                )
+                firestore.collection("brigadiers").document(brigadierId)
+                    .set(bMap, SetOptions.merge()).await()
+                firestore.collection("app_users").document(brigadierId)
+                    .set(bMap, SetOptions.merge()).await()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Save brigadier settings cloud warning: ${e.message}")
+        }
+    }
+
+    fun getShowWorkerEarningsAndDebt(brigadierId: String): Boolean {
+        return prefs.getBoolean(
+            "show_worker_earnings_and_debt_$brigadierId",
+            prefs.getBoolean("show_worker_earnings_and_debt_global", false)
+        )
+    }
+
+    fun updateLocalBrigadierSetting(brigadierId: String, enabled: Boolean) {
+        prefs.edit()
+            .putBoolean("show_worker_earnings_and_debt_$brigadierId", enabled)
+            .putBoolean("show_worker_earnings_and_debt_global", enabled)
+            .apply()
+        _showWorkerEarningsAndDebt.value = enabled
     }
 }

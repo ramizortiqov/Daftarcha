@@ -41,6 +41,13 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
 
     val currentUser: StateFlow<AuthUser?> = authManager.currentUser
+    val showWorkerEarningsAndDebt: StateFlow<Boolean> = authManager.showWorkerEarningsAndDebt
+
+    fun setShowWorkerEarningsAndDebt(enabled: Boolean) {
+        viewModelScope.launch {
+            authManager.setShowWorkerEarningsAndDebt(enabled)
+        }
+    }
 
     fun logout() {
         authManager.logout()

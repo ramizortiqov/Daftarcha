@@ -25,6 +25,13 @@ class AuthViewModel @Inject constructor(
 
     val currentUser: StateFlow<AuthUser?> = authManager.currentUser
     val isInitialized: StateFlow<Boolean> = authManager.isInitialized
+    val showWorkerEarningsAndDebt: StateFlow<Boolean> = authManager.showWorkerEarningsAndDebt
+
+    fun setShowWorkerEarningsAndDebt(enabled: Boolean) {
+        viewModelScope.launch {
+            authManager.setShowWorkerEarningsAndDebt(enabled)
+        }
+    }
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
