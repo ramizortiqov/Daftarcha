@@ -53,7 +53,8 @@ fun EmployeesTab(
                 onClick = onNavigateToFiredEmployees,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 8.dp) // Отступ кнопки снизу
+                    .padding(bottom = 8.dp), // Отступ кнопки снизу
+                shape = androidx.compose.ui.graphics.RectangleShape
             ) {
                 Text("СОБИҚ ШЕРИКЛАР")
             }

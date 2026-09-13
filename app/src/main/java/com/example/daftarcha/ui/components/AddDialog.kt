@@ -123,7 +123,8 @@ fun AddDialog(
                     onConfirm(name, phone.takeIf { phoneLabel != null }, formattedDate.takeIf { it.isNotBlank() })
                     onDismiss()
                 },
-                enabled = name.isNotBlank() && (!showDateField || selectedDateMillis != null)
+                enabled = name.isNotBlank() && (!showDateField || selectedDateMillis != null),
+                shape = androidx.compose.ui.graphics.RectangleShape
             ) {
                 Text("ҚЎШИШ")
             }

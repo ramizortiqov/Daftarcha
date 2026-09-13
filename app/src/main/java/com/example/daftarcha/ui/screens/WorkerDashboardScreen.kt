@@ -105,7 +105,6 @@ fun WorkerDashboardScreen(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer
                         ),
-                        shape = RoundedCornerShape(16.dp)
                     ) {
                         Row(
                             modifier = Modifier.padding(16.dp),
@@ -156,7 +155,6 @@ fun WorkerDashboardScreen(
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Row(
@@ -211,7 +209,6 @@ fun WorkerDashboardScreen(
                     items(data.projectBreakdowns) { proj ->
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surface
                             ),
@@ -229,7 +226,6 @@ fun WorkerDashboardScreen(
                                     )
                                     Surface(
                                         color = MaterialTheme.colorScheme.secondaryContainer,
-                                        shape = RoundedCornerShape(8.dp)
                                     ) {
                                         Text(
                                             text = "${proj.workdays} кун",
@@ -255,7 +251,7 @@ fun WorkerDashboardScreen(
                                             text = "%.2f с".format(proj.earnedInProject),
                                             style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF009900)
+                                            color = com.example.daftarcha.ui.theme.PositiveGreen
                                         )
                                     }
                                 }
@@ -293,7 +289,6 @@ fun WorkerDashboardScreen(
                     item {
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                         ) {
                             Text(
@@ -311,7 +306,7 @@ fun WorkerDashboardScreen(
                                 Text(
                                     text = "%.2f с".format(payment.amount),
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF009900)
+                                    color = com.example.daftarcha.ui.theme.PositiveGreen
                                 )
                             },
                             supportingContent = {
@@ -359,7 +354,8 @@ fun WorkerDashboardScreen(
                         viewModel.logout()
                         onLogout()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = androidx.compose.ui.graphics.RectangleShape
                 ) {
                     Text("Чиқиш")
                 }

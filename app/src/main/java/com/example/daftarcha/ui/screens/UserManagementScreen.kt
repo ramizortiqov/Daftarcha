@@ -64,7 +64,6 @@ fun UserManagementScreen(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant
                         ),
-                        shape = RoundedCornerShape(12.dp)
                     ) {
                         Row(
                             modifier = Modifier
@@ -114,7 +113,6 @@ fun UserManagementScreen(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     ),
-                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
                         Text(
@@ -125,7 +123,7 @@ fun UserManagementScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "• Бригадир: тўлиқ назорат, янги шериклар, янги ишлар, админ тайинлаш.\n" +
+                            text = "• Усто: тўлиқ назорат, янги шериклар, янги ишлар, админ тайинлаш.\n" +
                                    "• Админ: барча ишлар, давомат ва харажатларга кириш (янги шерик/иш қўшиш ва админ тайинлашдан ташқари).\n" +
                                    "• Шерик: фақат ўз шахсий ҳисоб-китоби ва харажатларини кўриш.",
                             style = MaterialTheme.typography.bodySmall,
@@ -146,7 +144,6 @@ fun UserManagementScreen(
             items(users) { user ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Row(
@@ -161,7 +158,6 @@ fun UserManagementScreen(
                             modifier = Modifier.weight(1f)
                         ) {
                             Surface(
-                                shape = RoundedCornerShape(8.dp),
                                 color = when (user.role) {
                                     UserRole.BRIGADIER -> MaterialTheme.colorScheme.primaryContainer
                                     UserRole.ADMIN -> MaterialTheme.colorScheme.tertiaryContainer
@@ -207,10 +203,9 @@ fun UserManagementScreen(
                         if (user.role == UserRole.BRIGADIER) {
                             Surface(
                                 color = MaterialTheme.colorScheme.primary,
-                                shape = RoundedCornerShape(16.dp)
                             ) {
                                 Text(
-                                    text = "Бригадир",
+                                    text = "Усто",
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                     style = MaterialTheme.typography.labelMedium,
@@ -223,7 +218,8 @@ fun UserManagementScreen(
                                     userToEditRole = user
                                     selectedNewRole = user.role
                                 },
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                shape = androidx.compose.ui.graphics.RectangleShape
                             ) {
                                 Text(
                                     text = if (user.role == UserRole.ADMIN) "Админ ✏️" else "Шерик ✏️",
@@ -233,7 +229,6 @@ fun UserManagementScreen(
                         } else {
                             Surface(
                                 color = if (user.role == UserRole.ADMIN) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                                shape = RoundedCornerShape(16.dp)
                             ) {
                                 Text(
                                     text = if (user.role == UserRole.ADMIN) "Админ" else "Шерик",
@@ -276,7 +271,8 @@ fun UserManagementScreen(
                         viewModel.setUserRole(editing.loginId, selectedNewRole) { success, _ ->
                             userToEditRole = null
                         }
-                    }
+                    },
+                    shape = androidx.compose.ui.graphics.RectangleShape
                 ) {
                     Text("САҚЛАШ")
                 }

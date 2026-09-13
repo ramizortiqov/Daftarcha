@@ -66,7 +66,8 @@ fun SelectEmployeesDialog(
                     onConfirm(selectedEmployeeIds.toList())
                     onDismiss()
                 },
-                enabled = selectedEmployeeIds.isNotEmpty()
+                enabled = selectedEmployeeIds.isNotEmpty(),
+                shape = androidx.compose.ui.graphics.RectangleShape
             ) {
                 Text("ҚЎШИШ")
             }

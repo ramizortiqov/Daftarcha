@@ -123,7 +123,6 @@ fun EmployeeAccountDialog(
                     if (selectedRole == UserRole.ADMIN) {
                         Surface(
                             color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f),
-                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
@@ -137,11 +136,10 @@ fun EmployeeAccountDialog(
                 } else {
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "Рол: ${if (selectedRole == UserRole.ADMIN) "Админ" else "Шерик"} (Фақат Бригадир ролни ўзгартириши мумкин)",
+                            text = "Рол: ${if (selectedRole == UserRole.ADMIN) "Админ" else "Шерик"} (Фақат Усто ролни ўзгартириши мумкин)",
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(8.dp)
                         )
@@ -156,7 +154,8 @@ fun EmployeeAccountDialog(
                         onSave(loginId.trim(), password.trim(), selectedRole)
                     }
                 },
-                enabled = loginId.isNotBlank() && password.isNotBlank()
+                enabled = loginId.isNotBlank() && password.isNotBlank(),
+                shape = androidx.compose.ui.graphics.RectangleShape
             ) {
                 Text("САҚЛАШ")
             }

@@ -1,6 +1,10 @@
 package com.example.daftarcha.ui.screens
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -8,8 +12,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -64,6 +70,7 @@ fun MainScreen(
     val syncStatus by syncViewModel.syncStatus.collectAsState()
     var showLogoutConfirm by remember { mutableStateOf(false) }
     var showBrigadierMenuDialog by remember { mutableStateOf(false) }
+    var showMoreMenu by remember { mutableStateOf(false) }
 
     // Auto-sync with Firebase in background on start
     LaunchedEffect(Unit) {
@@ -72,94 +79,166 @@ fun MainScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
+            val roleName = when (currentUser?.role) {
+                UserRole.BRIGADIER -> "Усто"
+                UserRole.ADMIN -> "Админ"
+                UserRole.WORKER -> "Шерик"
+                null -> null
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp)
+                        .padding(top = 10.dp, bottom = 12.dp),
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Column {
-                        Text("Дафтарча")
-                        currentUser?.let { user ->
-                            val roleName = when (user.role) {
-                                UserRole.BRIGADIER -> "Бригадир"
-                                UserRole.ADMIN -> "Админ"
-                                UserRole.WORKER -> "Шерик"
-                            }
-                            Text(
-                                text = "${user.name} ($roleName)",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                },
-                actions = {
-                    // Cloud Sync action button
-                    IconButton(
-                        onClick = { syncViewModel.triggerSync() },
-                        enabled = syncStatus !is SyncStatus.InProgress
-                    ) {
-                        if (syncStatus is SyncStatus.InProgress) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        } else {
-                            Icon(
-                                Icons.Default.CloudSync,
-                                contentDescription = "Булут билан синхронизация қилиш",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
-                    // Only Brigadier can open Brigadier menu and User & Role management
-                    if (isBrigadier) {
-                        IconButton(onClick = { showBrigadierMenuDialog = true }) {
-                            Icon(
-                                Icons.Default.Tune,
-                                contentDescription = "Бригадир созламалари ва менюси",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        IconButton(onClick = { navController.navigate(Screen.UserManagement.route) }) {
-                            Icon(
-                                Icons.Default.AdminPanelSettings,
-                                contentDescription = "Фойдаланувчилар ва роллар",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
-                    // Logout button
-                    IconButton(onClick = { showLogoutConfirm = true }) {
-                        Icon(
-                            Icons.Default.Logout,
-                            contentDescription = "Тизимдан чиқиш",
-                            tint = MaterialTheme.colorScheme.error
+                        Text(
+                            text = "ДАФТАРЧА",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onBackground
                         )
+                        currentUser?.let { user ->
+                            Text(
+                                text = "${user.name}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (roleName != null) {
+                            Text(
+                                text = roleName.uppercase(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier
+                                    .border(BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground))
+                                    .padding(horizontal = 6.dp, vertical = 5.dp)
+                            )
+                        }
+
+                        Box {
+                            IconButton(onClick = { showMoreMenu = true }) {
+                                if (syncStatus is SyncStatus.InProgress) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                } else {
+                                    Icon(
+                                        Icons.Default.MoreVert,
+                                        contentDescription = "Кўпроқ",
+                                        tint = MaterialTheme.colorScheme.onBackground
+                                    )
+                                }
+                            }
+                            DropdownMenu(expanded = showMoreMenu, onDismissRequest = { showMoreMenu = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Булут билан синхронизация") },
+                                    leadingIcon = { Icon(Icons.Default.CloudSync, contentDescription = null) },
+                                    enabled = syncStatus !is SyncStatus.InProgress,
+                                    onClick = {
+                                        showMoreMenu = false
+                                        syncViewModel.triggerSync()
+                                    }
+                                )
+                                if (isBrigadier) {
+                                    DropdownMenuItem(
+                                        text = { Text("Усто менюси") },
+                                        leadingIcon = { Icon(Icons.Default.Tune, contentDescription = null) },
+                                        onClick = {
+                                            showMoreMenu = false
+                                            showBrigadierMenuDialog = true
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Фойдаланувчилар ва роллар") },
+                                        leadingIcon = { Icon(Icons.Default.AdminPanelSettings, contentDescription = null) },
+                                        onClick = {
+                                            showMoreMenu = false
+                                            navController.navigate(Screen.UserManagement.route)
+                                        }
+                                    )
+                                }
+                                DropdownMenuItem(
+                                    text = { Text("Тизимдан чиқиш", color = MaterialTheme.colorScheme.error) },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Logout,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    onClick = {
+                                        showMoreMenu = false
+                                        showLogoutConfirm = true
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
-            )
+                HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.onBackground)
+            }
         },
         bottomBar = {
-            NavigationBar {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentRoute = navBackStackEntry?.destination?.route
+            val navBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentRoute = navBackStackEntry?.destination?.route
 
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background)
+                    .border(BorderStroke(2.dp, MaterialTheme.colorScheme.onBackground))
+            ) {
                 navItems.forEach { screen ->
-                    NavigationBarItem(
-                        icon = { Icon(screen.icon!!, contentDescription = screen.title) },
-                        label = { Text(screen.title!!) },
-                        selected = currentRoute == screen.route,
-                        onClick = {
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                    val selected = currentRoute == screen.route
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .border(
+                                BorderStroke(
+                                    3.dp,
+                                    if (selected) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Transparent
+                                )
+                            )
+                            .background(MaterialTheme.colorScheme.background)
+                            .clickable {
+                                navController.navigate(screen.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
                             }
-                        }
-                    )
+                            .padding(top = 9.dp, bottom = 11.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Icon(
+                            screen.icon!!,
+                            contentDescription = screen.title,
+                            tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = screen.title!!.uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
         }
@@ -306,7 +385,8 @@ fun MainScreen(
                         homeViewModel.logout()
                         onLogout()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = RectangleShape
                 ) {
                     Text("Чиқиш")
                 }
@@ -332,7 +412,7 @@ fun MainScreen(
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )
-                    Text("Бригадир менюси")
+                    Text("Усто менюси")
                 }
             },
             text = {
@@ -381,7 +461,8 @@ fun MainScreen(
                             showBrigadierMenuDialog = false
                             navController.navigate(Screen.UserManagement.route)
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RectangleShape
                     ) {
                         Icon(
                             Icons.Default.AdminPanelSettings,
@@ -394,7 +475,7 @@ fun MainScreen(
                 }
             },
             confirmButton = {
-                Button(onClick = { showBrigadierMenuDialog = false }) {
+                Button(onClick = { showBrigadierMenuDialog = false }, shape = RectangleShape) {
                     Text("Тайёр")
                 }
             }

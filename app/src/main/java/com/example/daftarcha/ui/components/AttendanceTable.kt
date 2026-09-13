@@ -17,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -25,16 +24,16 @@ import com.example.daftarcha.data.model.Employee
 import com.example.daftarcha.viewmodel.AttendanceTable
 import java.text.SimpleDateFormat
 import java.util.Locale
-import androidx.compose.foundation.clickable
 
 // Размеры ячеек
-private val cellWidth = 60.dp
-private val cellHeight = 48.dp
-private val nameWidth = 130.dp
-private val borderColor = Color.Gray.copy(alpha = 0.5f)
+private val cellWidth = 48.dp
+private val cellHeight = 44.dp
+private val nameWidth = 128.dp
 
 /**
- * Главный Composable таблицы
+ * Главный Composable таблицы — ruled ledger grid matching the Modernist
+ * attendance journal (screen 1e): filled ink squares for present days,
+ * hollow cells for absent, accent-filled cells for unsaved local edits.
  */
 @Composable
 fun AttendanceTable(
@@ -42,21 +41,24 @@ fun AttendanceTable(
     table: AttendanceTable,
     onMarkClick: (employeeId: Int, date: String, isPresent: Boolean) -> Unit,
     onEmployeeNameClick: (Int) -> Unit,
-    // --- НОВОЕ: Флаг режима редактирования ---
+    // --- Флаг режима редактирования ---
     isEditing: Boolean,
     localChanges: Map<Pair<Int, String>, Boolean>
 ) {
-    // 1. Единый стейт для горизонтальной прокрутки.
-    //    Это "склеивает" прокрутку заголовка и всех рядов.
+    // Единый стейт для горизонтальной прокрутки — "склеивает" прокрутку
+    // заголовка и всех рядов.
     val horizontalScrollState = rememberScrollState()
+    val borderColor = MaterialTheme.colorScheme.outlineVariant
 
-    Column(Modifier.padding(horizontal = 16.dp)) {
+    Column(
+        Modifier
+            .padding(horizontal = 16.dp)
+            .border(1.dp, MaterialTheme.colorScheme.onSurface)
+    ) {
         // --- ЗАГОЛОВОК (ДАТЫ) ---
         Row(Modifier.background(MaterialTheme.colorScheme.surfaceVariant)) {
-            // Фиксированная ячейка "Сотрудник"
-            HeaderCell("Шериклар", nameWidth)
+            HeaderCell("Шериклар", nameWidth, borderColor)
 
-            // Прокручиваемая часть с датами
             Row(Modifier.horizontalScroll(horizontalScrollState)) {
                 table.dates.forEach { dateStr ->
                     // Форматируем "2024-10-29" -> "29.10"
@@ -65,41 +67,39 @@ fun AttendanceTable(
                         SimpleDateFormat("dd.MM", Locale.getDefault()).format(parsed!!)
                     } catch (e: Exception) { "?" }
 
-                    HeaderCell(formattedDate, cellWidth)
+                    HeaderCell(formattedDate, cellWidth, borderColor)
                 }
             }
         }
 
-        // --- РЯДЫ ДАННЫХ (СОТРУДНИКИ И ОТМЕТКИ) ---
+        // --- РЯДЫ ДАННЫХ (ШЕРИКЛАР И ОТМЕТКИ) ---
         employees.forEach { employee ->
             val marks = table.employeeMarks[employee.id] ?: emptyList()
 
             Row {
-                // Фиксированная ячейка "Имя"
                 DataCell(
                     employee.name,
                     width = nameWidth,
+                    borderColor = borderColor,
                     modifier = if (!isEditing) {
                         Modifier.clickable { onEmployeeNameClick(employee.id) }
                     } else {
                         Modifier // В режиме редактирования клик не работает
                     }
-
                 )
 
-                // Прокручиваемая часть с отметками
                 Row(Modifier.horizontalScroll(horizontalScrollState)) {
-                    // Используем zip, чтобы связать дату и отметку (true/false)
+                    // zip связывает дату и отметку (true/false)
                     table.dates.zip(marks).forEach { (dateStr, isPresentFromTable) ->
                         CheckmarkCell(
-                            isPresent = isPresentFromTable, // Оригинальное значение
-                            date = dateStr,                 // Дата
-                            employeeId = employee.id,       // ID сотрудника
-                            localChanges = localChanges,    // Карта локальных изменений
+                            isPresent = isPresentFromTable,
+                            date = dateStr,
+                            employeeId = employee.id,
+                            localChanges = localChanges,
                             width = cellWidth,
+                            borderColor = borderColor,
                             onClick = {
                                 if (isEditing) {
-                                    // Определяем НОВОЕ значение (инвертируем ТЕКУЩЕЕ визуальное)
                                     val currentVisualState = localChanges[Pair(employee.id, dateStr)] ?: isPresentFromTable
                                     onMarkClick(employee.id, dateStr, !currentVisualState)
                                 }
@@ -115,30 +115,45 @@ fun AttendanceTable(
 // --- Вспомогательные Composable-компоненты для ячеек ---
 
 @Composable
-private fun HeaderCell(text: String, width: Dp) {
+private fun HeaderCell(text: String, width: Dp, borderColor: Color) {
     Box(
         modifier = Modifier
             .width(width)
-            .height(cellHeight)
+            .height(38.dp)
             .border(1.dp, borderColor)
-            .padding(8.dp),
+            .padding(horizontal = 8.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+        Text(
+            text,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
 @Composable
-private fun DataCell(text: String, width: Dp) {
+private fun DataCell(
+    text: String,
+    width: Dp,
+    borderColor: Color,
+    modifier: Modifier = Modifier
+) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .width(width)
             .height(cellHeight)
             .border(1.dp, borderColor)
-            .padding(8.dp),
+            .padding(horizontal = 10.dp),
         contentAlignment = Alignment.CenterStart
     ) {
-        Text(text, maxLines = 2)
+        Text(
+            text,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 2
+        )
     }
 }
 
@@ -149,27 +164,26 @@ private fun CheckmarkCell(
     employeeId: Int,
     localChanges: Map<Pair<Int, String>, Boolean>, // Карта локальных изменений
     width: Dp,
+    borderColor: Color,
     onClick: () -> Unit
 ) {
-    // --- НОВАЯ ЛОГИКА: Определяем, что показывать ---
-    // Ключ для поиска в карте локальных изменений
     val changeKey = Pair(employeeId, date)
-    // Есть ли локальное изменение для этой ячейки?
     val hasLocalChange = localChanges.containsKey(changeKey)
-    // Какое значение показывать? Приоритет у локального.
     val displayPresent = if (hasLocalChange) localChanges[changeKey]!! else isPresent
-    // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
 
-    val (text, color) = if (displayPresent) {
-        "+" to Color(0xFF009900) // Зеленый
-    } else {
-        "-" to MaterialTheme.colorScheme.error // Красный
+    val glyph = if (displayPresent) "+" else "–"
+
+    val backgroundColor = when {
+        hasLocalChange && displayPresent -> MaterialTheme.colorScheme.primary
+        hasLocalChange && !displayPresent -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+        displayPresent -> MaterialTheme.colorScheme.onSurface
+        else -> Color.Transparent
     }
 
-    val backgroundColor = if (hasLocalChange) {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-    } else {
-        Color.Transparent
+    val glyphColor = when {
+        hasLocalChange && displayPresent -> MaterialTheme.colorScheme.onPrimary
+        displayPresent -> MaterialTheme.colorScheme.surface
+        else -> MaterialTheme.colorScheme.outline
     }
 
     Box(
@@ -178,24 +192,9 @@ private fun CheckmarkCell(
             .height(cellHeight)
             .border(1.dp, borderColor)
             .background(backgroundColor)
-            .clickable(onClick = onClick) // <-- КЛИКАБЕЛЬНОСТЬ
-            .padding(8.dp),
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Text(text, color = color, fontSize = MaterialTheme.typography.titleLarge.fontSize, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-private fun DataCell(text: String, width: Dp, modifier: Modifier = Modifier) { // <-- Добавили modifier
-    Box(
-        modifier = modifier // <-- Используем modifier
-            .width(width)
-            .height(cellHeight)
-            .border(1.dp, borderColor)
-            .padding(8.dp),
-        contentAlignment = Alignment.CenterStart
-    ) {
-        Text(text, maxLines = 2)
+        Text(text = glyph, color = glyphColor, style = MaterialTheme.typography.titleLarge)
     }
 }

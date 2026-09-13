@@ -1,7 +1,13 @@
 package com.example.daftarcha.ui.screens
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,7 +16,7 @@ import androidx.compose.material.icons.filled.* // Импорт всех ико�
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.daftarcha.ui.components.ConfirmDialog
@@ -27,6 +33,7 @@ fun FiredEmployeesScreen(
     val employees by viewModel.firedEmployees.collectAsState()
     val dialogState by viewModel.dialogState.collectAsState()
     val selectedEmployee by viewModel.selectedEmployee.collectAsState()
+    val ink = MaterialTheme.colorScheme.onSurface
 
     Scaffold(
         topBar = {
@@ -36,28 +43,45 @@ fun FiredEmployeesScreen(
             )
         }
     ) { paddingValues ->
-        LazyColumn(modifier = Modifier.padding(paddingValues).padding(8.dp)) {
+        LazyColumn(modifier = Modifier.padding(paddingValues)) {
             items(employees) { employee ->
-                Card(modifier = Modifier.fillParentMaxWidth().padding(vertical = 4.dp)) {
-                    ListItem(
-                        headlineContent = { Text(employee.name) },
-                        supportingContent = { Text(employee.phone ?: "Рақам йўқ") },
-                        leadingContent = { Icon(Icons.Default.PersonOff, null) },
-                        trailingContent = {
-                            Row {
-                                IconButton(
-                                    onClick = { viewModel.openDialog(FiredEmployeeDialog.RESTORE, employee) },
-                                    colors = IconButtonDefaults.iconButtonColors(contentColor = Color(0xFF009900))
-                                ) { Icon(Icons.Default.Restore, "Қайта тиклаш") }
-
-                                IconButton(
-                                    onClick = { viewModel.openDialog(FiredEmployeeDialog.DELETE, employee) },
-                                    colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                                ) { Icon(Icons.Default.DeleteForever, "Ўчириш") }
-                            }
-                        }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 13.dp)
+                ) {
+                    Text(employee.name, style = MaterialTheme.typography.titleMedium, color = ink)
+                    Text(
+                        employee.phone ?: "Рақам йўқ",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp)
                     )
+                    Row(
+                        modifier = Modifier.padding(top = 11.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            "ҚАЙТА ТИКЛАШ",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = ink,
+                            modifier = Modifier
+                                .border(BorderStroke(2.dp, ink), RectangleShape)
+                                .clickable { viewModel.openDialog(FiredEmployeeDialog.RESTORE, employee) }
+                                .padding(horizontal = 10.dp, vertical = 8.dp)
+                        )
+                        Text(
+                            "БУТУНЛАЙ ЎЧИРИШ",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier
+                                .border(BorderStroke(2.dp, MaterialTheme.colorScheme.error), RectangleShape)
+                                .clickable { viewModel.openDialog(FiredEmployeeDialog.DELETE, employee) }
+                                .padding(horizontal = 10.dp, vertical = 8.dp)
+                        )
+                    }
                 }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         }
     }

@@ -145,7 +145,7 @@ class AuthManager @Inject constructor(
             val trimmedPhone = phone?.trim().takeIf { !it.isNullOrBlank() }
 
             if (trimmedName.isEmpty()) {
-                return@withContext Result.failure(IllegalArgumentException("Бригадир исмини киритинг"))
+                return@withContext Result.failure(IllegalArgumentException("Усто исмини киритинг"))
             }
             if (trimmedPass.isEmpty()) {
                 return@withContext Result.failure(IllegalArgumentException("Паролни киритинг"))

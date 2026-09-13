@@ -1,6 +1,9 @@
 package com.example.daftarcha.ui.screens
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.daftarcha.data.model.CalculationSummary
 import com.example.daftarcha.viewmodel.CalculatorViewModel
+import com.example.daftarcha.ui.theme.PositiveGreen
 import android.content.Context
 import android.content.Intent
 import androidx.compose.ui.platform.LocalContext
@@ -126,54 +130,135 @@ fun CalculationResultScreen(
             ) {
 
                 item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        elevation = CardDefaults.cardElevation(2.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.onSurface)
+                            .padding(16.dp)
                     ) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("УМУМИЙ МАЪЛУМОТ", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            Divider(modifier = Modifier.padding(vertical = 4.dp))
-                            StatRow("Умумий пул берилди:", "%.2f с".format(summary.totalBonuses))
-                            StatRow("Умумий харажатлар:", "%.2f с".format(summary.totalExpenses))
-                            StatRow("Жами (соф фойда):", "%.2f с".format(summary.netCost), isTotal = true)
-                            StatRow("Жами кунлар:", "${summary.totalWorkdays}")
-                            StatRow("Кунлик ставка:", "%.2f с".format(summary.dailyRate), isTotal = true)
+                        Text(
+                            "КУНЛИК СТАВКА",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                        )
+                        Text(
+                            "%.0f с".format(summary.dailyRate),
+                            style = MaterialTheme.typography.displaySmall,
+                            color = MaterialTheme.colorScheme.surface,
+                            modifier = Modifier.padding(top = 6.dp)
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 14.dp),
+                            horizontalArrangement = Arrangement.spacedBy(24.dp)
+                        ) {
+                            Column {
+                                Text(
+                                    "${summary.totalWorkdays}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.surface
+                                )
+                                Text(
+                                    "ЖАМИ КУНЛАР",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                                )
+                            }
+                            Column {
+                                Text(
+                                    "%.0f с".format(summary.netCost),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.surface
+                                )
+                                Text(
+                                    "СОФ ФОЙДА",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                                )
+                            }
                         }
+                    }
+                }
+
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant))
+                    ) {
+                        StatRow("Умумий пул берилди", "%.0f с".format(summary.totalBonuses), modifier = Modifier.padding(12.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        StatRow("Умумий харажатлар", "%.0f с".format(summary.totalExpenses), modifier = Modifier.padding(12.dp))
                     }
                 }
 
                 item {
                     Text(
                         "ШЕРИКЛАР БЎЙИЧА (${summary.employeeStats.size})",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)
                     )
                 }
 
                 items(summary.employeeStats) { emp ->
                     val balanceColor = when {
-                        emp.balance > 0.01 -> Color(0xFF009900)
+                        emp.balance > 0.01 -> PositiveGreen
                         emp.balance < -0.01 -> MaterialTheme.colorScheme.error
-                        else -> Color.Unspecified
+                        else -> MaterialTheme.colorScheme.onSurface
                     }
 
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        elevation = CardDefaults.cardElevation(1.dp)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp)
                     ) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("${emp.name} (Кунлар: ${emp.workdays})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            Divider(modifier = Modifier.padding(vertical = 4.dp))
-                            StatRow("Ишлади:", "%.2f с".format(emp.earned))
-                            StatRow("Олди:", "%.2f с".format(emp.paid))
-                            StatRow("ТЎЛАНИШИ КЕРАК:", "%.2f с".format(emp.balance), valueColor = balanceColor, isTotal = true)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                emp.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                "${emp.workdays} кун",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            MiniStat("Ишлади", "%.0f".format(emp.earned))
+                            MiniStat("Олди", "%.0f".format(emp.paid))
+                            MiniStat("Тўланиши", "%.0f".format(emp.balance), valueColor = balanceColor)
                         }
                     }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun RowScope.MiniStat(title: String, value: String, valueColor: Color = Color.Unspecified) {
+    Column(modifier = Modifier.weight(1f)) {
+        Text(
+            title,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.titleSmall,
+            color = if (valueColor != Color.Unspecified) valueColor else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(top = 3.dp)
+        )
     }
 }
 

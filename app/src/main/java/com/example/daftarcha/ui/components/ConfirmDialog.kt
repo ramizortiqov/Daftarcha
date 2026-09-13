@@ -28,7 +28,8 @@ fun ConfirmDialog(
                     onConfirm()
                     onDismiss()
                 },
-                colors = confirmButtonColor
+                colors = confirmButtonColor,
+                shape = androidx.compose.ui.graphics.RectangleShape
             ) {
                 Text(confirmButtonText)
             }

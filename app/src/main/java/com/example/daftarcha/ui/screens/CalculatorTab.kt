@@ -1,5 +1,8 @@
 package com.example.daftarcha.ui.screens
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,56 +23,90 @@ import androidx.navigation.NavHostController
 
 @Composable
 fun CalculatorTab(
-    navController: NavHostController, 
+    navController: NavHostController,
     viewModel: CalculatorViewModel
 ) {
     val projects by viewModel.allProjects.collectAsState()
     val selectedIds by viewModel.selectedProjectIds.collectAsState()
+    val ink = MaterialTheme.colorScheme.onSurface
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    Column(modifier = Modifier.fillMaxSize()) {
         Text(
-            "Ҳисоб-китоб учун ишларни танланг",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(bottom = 8.dp).fillMaxWidth()
+            "ҲИСОБ-КИТОБ УЧУН ИШЛАРНИ ТАНЛАНГ",
+            style = MaterialTheme.typography.titleMedium,
+            color = ink,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
         )
+        HorizontalDivider(thickness = 2.dp, color = ink)
 
-        LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxWidth()
-        ) {
+        LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
             items(projects) { project ->
                 val isSelected = selectedIds.contains(project.id)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { viewModel.toggleProjectSelection(project.id) }
-                        .padding(vertical = 8.dp),
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Checkbox(
-                        checked = isSelected,
-                        onCheckedChange = { viewModel.toggleProjectSelection(project.id) }
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .border(BorderStroke(2.dp, ink))
+                            .background(if (isSelected) ink else Color.Transparent),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isSelected) {
+                            Text("✕", color = MaterialTheme.colorScheme.surface, style = MaterialTheme.typography.labelLarge)
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Text(
+                        project.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = ink
                     )
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(project.name, style = MaterialTheme.typography.bodyLarge)
                 }
-                Divider()
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         }
 
-        Button(
-            onClick = {
-                viewModel.calculateSelectedProjects()
-                navController.navigate(Screen.CalculationResult.route)
-            },
-            enabled = selectedIds.isNotEmpty(),
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
-        ) {
-            Text("ТАНЛАНГАНЛАРНИ ҲИСОБЛАШ")
+        HorizontalDivider(thickness = 2.dp, color = ink)
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "ТАНЛАНДИ",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    "${selectedIds.size} иш",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = ink
+                )
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(if (selectedIds.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable(enabled = selectedIds.isNotEmpty()) {
+                        viewModel.calculateSelectedProjects()
+                        navController.navigate(Screen.CalculationResult.route)
+                    }
+                    .padding(vertical = 14.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    "ТАНЛАНГАНЛАРНИ ҲИСОБЛАШ",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (selectedIds.isNotEmpty()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

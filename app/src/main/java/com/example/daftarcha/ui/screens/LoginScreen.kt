@@ -69,7 +69,6 @@ fun LoginScreen(
                     .fillMaxWidth()
                     .widthIn(max = 500.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                shape = RoundedCornerShape(24.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -81,30 +80,20 @@ fun LoginScreen(
                 ) {
                     if (!isRegisteringBrigadier) {
                         // ==================== LOGIN VIEW ====================
-                        Surface(
-                            shape = RoundedCornerShape(16.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.size(64.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Lock,
-                                    contentDescription = "Тизимга кириш",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(34.dp)
-                                )
-                            }
-                        }
-
                         Text(
-                            text = "Дафтарча",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
+                            text = "ДАФТАРЧА",
+                            style = MaterialTheme.typography.displaySmall,
                             color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Box(
+                            modifier = Modifier
+                                .height(4.dp)
+                                .width(72.dp)
+                                .background(MaterialTheme.colorScheme.primary)
                         )
 
                         Text(
-                            text = "Логин (ID ёки исм) ва паролни киритиб тизимга киринг",
+                            text = "Логин ва паролни киритиб тизимга киринг",
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -112,7 +101,6 @@ fun LoginScreen(
 
                         if (uiState.errorMessage != null) {
                             Surface(
-                                shape = RoundedCornerShape(10.dp),
                                 color = MaterialTheme.colorScheme.errorContainer,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -142,7 +130,7 @@ fun LoginScreen(
                                 loginId = it
                                 if (uiState.errorMessage != null) viewModel.clearError()
                             },
-                            label = { Text("Логин (ID) ёки Исм") },
+                            label = { Text("Логин") },
                             placeholder = { Text("масалан: 01 ёки исмингиз") },
                             leadingIcon = {
                                 Icon(Icons.Default.Badge, contentDescription = null)
@@ -156,7 +144,6 @@ fun LoginScreen(
                                 onNext = { focusManager.moveFocus(FocusDirection.Down) }
                             ),
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
                         )
 
                         // Password field
@@ -191,7 +178,6 @@ fun LoginScreen(
                                 }
                             ),
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
                         )
 
                         Spacer(modifier = Modifier.height(4.dp))
@@ -205,7 +191,7 @@ fun LoginScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = androidx.compose.ui.graphics.RectangleShape
                         ) {
                             if (uiState.isLoading) {
                                 CircularProgressIndicator(
@@ -248,7 +234,7 @@ fun LoginScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = androidx.compose.ui.graphics.RectangleShape
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Engineering,
@@ -257,7 +243,7 @@ fun LoginScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Я бригадир",
+                                text = "Усто ман",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -280,7 +266,7 @@ fun LoginScreen(
                             }
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "Бригадирни рўйхатдан ўтказиш",
+                                text = "Устони рўйхатдан ўтказиш",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -288,7 +274,6 @@ fun LoginScreen(
                         }
 
                         Surface(
-                            shape = RoundedCornerShape(12.dp),
                             color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -314,7 +299,6 @@ fun LoginScreen(
                         val activeError = localError ?: uiState.errorMessage
                         if (activeError != null) {
                             Surface(
-                                shape = RoundedCornerShape(10.dp),
                                 color = MaterialTheme.colorScheme.errorContainer,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -345,7 +329,7 @@ fun LoginScreen(
                                 localError = null
                                 if (uiState.errorMessage != null) viewModel.clearError()
                             },
-                            label = { Text("Исм (Бригадир исми) *") },
+                            label = { Text("Исм (Усто исми) *") },
                             placeholder = { Text("масалан: Алишер") },
                             leadingIcon = {
                                 Icon(Icons.Default.Person, contentDescription = null)
@@ -359,7 +343,6 @@ fun LoginScreen(
                                 onNext = { focusManager.moveFocus(FocusDirection.Down) }
                             ),
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
                         )
 
                         // Login ID field (Optional - defaults to name or brigadier)
@@ -387,7 +370,6 @@ fun LoginScreen(
                                 onNext = { focusManager.moveFocus(FocusDirection.Down) }
                             ),
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
                         )
 
                         // Password field
@@ -420,7 +402,6 @@ fun LoginScreen(
                                 onNext = { focusManager.moveFocus(FocusDirection.Down) }
                             ),
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
                         )
 
                         // Confirm password field
@@ -455,7 +436,6 @@ fun LoginScreen(
                                 }
                             ),
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
                         )
 
                         // Phone field (Optional)
@@ -482,7 +462,6 @@ fun LoginScreen(
                                 }
                             ),
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
                         )
 
                         Spacer(modifier = Modifier.height(4.dp))
@@ -513,7 +492,7 @@ fun LoginScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = androidx.compose.ui.graphics.RectangleShape
                         ) {
                             if (uiState.isLoading) {
                                 CircularProgressIndicator(

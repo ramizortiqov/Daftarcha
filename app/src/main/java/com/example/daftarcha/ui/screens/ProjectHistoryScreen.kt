@@ -45,7 +45,7 @@ fun ProjectHistoryScreen(
             items(history) { item ->
                 val (icon, tint) = when (item.type) {
                     "Харажат" -> Icons.Default.ArrowDownward to MaterialTheme.colorScheme.error
-                    "Пул берди" -> Icons.Default.ArrowUpward to Color(0xFF009900)
+                    "Пул берди" -> Icons.Default.ArrowUpward to com.example.daftarcha.ui.theme.PositiveGreen
                     else -> Icons.Default.Payment to MaterialTheme.colorScheme.primary
                 }
 

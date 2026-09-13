@@ -97,7 +97,7 @@ class AuthViewModel @Inject constructor(
     fun setUserRole(loginId: String, newRole: UserRole, onComplete: (Boolean, String?) -> Unit) {
         val current = currentUser.value
         if (current?.role != UserRole.BRIGADIER) {
-            onComplete(false, "Фақат Бригадир админлик даражасини ўзгартира олади")
+            onComplete(false, "Фақат Усто админлик даражасини ўзгартира олади")
             return
         }
 

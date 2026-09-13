@@ -1,16 +1,31 @@
 package com.example.daftarcha.ui.components
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.daftarcha.ui.theme.PositiveGreen
 
 @Composable
 fun EmployeeStatsCard(
@@ -21,97 +36,82 @@ fun EmployeeStatsCard(
     showEarningsAndDebt: Boolean = true
 ) {
     val balanceColor = when {
-        balance > 0.01 -> Color(0xFF009900)
+        balance > 0.01 -> PositiveGreen
         balance < -0.01 -> MaterialTheme.colorScheme.error
         else -> LocalContentColor.current
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = MaterialTheme.shapes.large
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(BorderStroke(2.dp, MaterialTheme.colorScheme.onSurface))
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            if (showEarningsAndDebt) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    StatItem(
-                        title = "Иш кунлари",
-                        value = "$workdays",
-                        modifier = Modifier.weight(1f)
-                    )
-                    VerticalDivider()
-                    StatItem(
-                        title = "Ишлади",
-                        value = "%.2f с".format(earned),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+        if (showEarningsAndDebt) {
+            Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                StatItem(
+                    title = "Иш кунлари",
+                    value = "$workdays",
+                    modifier = Modifier.weight(1f)
+                )
+                VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.fillMaxHeight())
+                StatItem(
+                    title = "Ишлади",
+                    value = "%.0f с".format(earned),
+                    modifier = Modifier.weight(1f)
+                )
+            }
 
-                Divider(modifier = Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-                Row(
-                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    StatItem(
-                        title = "Олди",
-                        value = "%.2f с".format(paid),
-                        modifier = Modifier.weight(1f)
-                    )
-                    VerticalDivider()
-                    StatItem(
-                        title = "Тўланиши керак",
-                        value = "%.2f с".format(balance),
-                        valueColor = balanceColor,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    StatItem(
-                        title = "Иш кунлари",
-                        value = "$workdays кун",
-                        modifier = Modifier.weight(1f)
-                    )
-                    VerticalDivider()
-                    StatItem(
-                        title = "Олди (тўланган)",
-                        value = "%.2f с".format(paid),
-                        valueColor = Color(0xFF009900),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+            Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                StatItem(
+                    title = "Олди",
+                    value = "%.0f с".format(paid),
+                    modifier = Modifier.weight(1f)
+                )
+                VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.fillMaxHeight())
+                StatItem(
+                    title = "Тўланиши керак",
+                    value = "%.0f с".format(balance),
+                    valueColor = balanceColor,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        } else {
+            Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                StatItem(
+                    title = "Иш кунлари",
+                    value = "$workdays кун",
+                    modifier = Modifier.weight(1f)
+                )
+                VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.fillMaxHeight())
+                StatItem(
+                    title = "Олди (тўланган)",
+                    value = "%.0f с".format(paid),
+                    valueColor = PositiveGreen,
+                    modifier = Modifier.weight(1f)
+                )
+            }
 
-                Spacer(modifier = Modifier.height(10.dp))
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.VisibilityOff,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = "Иш ҳақи ва қарз ҳисоб-китоби бригадир томонидан ёпилган",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.VisibilityOff,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "Иш ҳақи ва қарз ҳисоб-китоби усто томонидан ёпилган",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -125,30 +125,19 @@ private fun StatItem(
     valueColor: Color = LocalContentColor.current
 ) {
     Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        modifier = modifier.padding(14.dp),
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         Text(
             text = value,
             style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
             color = valueColor
         )
         Text(
             text = title,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
-}
-
-@Composable
-private fun VerticalDivider() {
-    Divider(
-        modifier = Modifier
-            .fillMaxHeight()
-            .width(1.dp)
-            .padding(vertical = 4.dp)
-    )
 }

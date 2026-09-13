@@ -142,7 +142,6 @@ fun EmployeeDetailScreen(
                             else MaterialTheme.colorScheme.secondaryContainer
                         } else MaterialTheme.colorScheme.surfaceVariant
                     ),
-                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
                         modifier = Modifier
@@ -202,7 +201,8 @@ fun EmployeeDetailScreen(
                 ) {
                     Button(
                         onClick = { viewModel.openDialog(EmployeeDialog.ADD_PAYMENT) },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        shape = androidx.compose.ui.graphics.RectangleShape
                     ) {
                         Icon(Icons.Default.Payment, contentDescription = null)
                         Spacer(modifier = Modifier.width(6.dp))
@@ -212,6 +212,8 @@ fun EmployeeDetailScreen(
                     OutlinedButton(
                         onClick = { viewModel.openDialog(EmployeeDialog.RESET_FINANCIALS) },
                         modifier = Modifier.weight(1f),
+                        shape = androidx.compose.ui.graphics.RectangleShape,
+                        border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.error),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = MaterialTheme.colorScheme.error
                         )
@@ -244,7 +246,7 @@ fun EmployeeDetailScreen(
                                 Text(
                                     text = "Суммаси: ${payment.amount} с",
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF009900)
+                                    color = com.example.daftarcha.ui.theme.PositiveGreen
                                 )
                             },
                             supportingContent = {
