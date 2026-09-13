@@ -17,6 +17,8 @@ import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -56,6 +58,7 @@ import androidx.compose.foundation.layout.Spacer // <-- For spacing between FABs
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Archive // <-- 1. ДОБАВЬТЕ ИКОНКУ
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.ButtonDefaults
 import com.example.daftarcha.ui.components.ConfirmDialog
 
@@ -75,6 +78,7 @@ fun ProjectScreen(
     val table by viewModel.attendanceTable.collectAsState()
     val availableEmployees by viewModel.availableEmployees.collectAsState()
     var isEditMode by remember { mutableStateOf(false) }
+    var showActionsMenu by remember { mutableStateOf(false) }
     val localChanges = viewModel.localAttendanceChanges as Map<Pair<Int, String>, Boolean>
     val projectValue = project
 
@@ -88,53 +92,81 @@ fun ProjectScreen(
                     }
                 },
                 actions = {
-                    if (projectValue != null) {
-                        if (projectValue.endDate == null) {
-                            IconButton(onClick = { viewModel.completeProject() }) {
-                                Icon(Icons.Default.CheckCircle, "Ишни якунлаш", tint = Color.Green)
-                            }
-                        } else {
-                            IconButton(onClick = { viewModel.reopenProject() }) {
-                                Icon(Icons.Default.PlayCircle, "Ишни қайта бошлаш", tint = MaterialTheme.colorScheme.primary)
-                            }
-                        }
-                    }
-                    if (!isEditMode) { 
-                        IconButton(onClick = {
-                            projectValue?.id?.let { id ->
-                                onHistoryClick(id)
-                            }
-                        }) {
-                            Icon(Icons.Default.History, "Иш тарихи")
-                        }
-                    }
-
-                    if (!isEditMode) {
-                        IconButton(onClick = { viewModel.openDialog(ProjectDialog.ADD_EMPLOYEE) }) {
-                            Icon(Icons.Default.PersonAdd, "Шерик қўшиш")
-                        }
-                        IconButton(onClick = { viewModel.openDialog(ProjectDialog.ADD_EXPENSE) }) {
-                            Icon(Icons.Default.Remove, "Харажат қўшиш")
-                        }
-                        IconButton(onClick = { viewModel.openDialog(ProjectDialog.ADD_BONUS) }) {
-                            Icon(Icons.Default.Add, "Пул берди")
-                        }
-                    }
                     if (projectValue != null && !isEditMode) {
-                        IconButton(onClick = {
-                            viewModel.openDialog(ProjectDialog.ARCHIVE_PROJECT)
-                        }) {
-                            Icon(Icons.Default.Archive, "Архивга солиш", tint = MaterialTheme.colorScheme.error)
+                        IconButton(onClick = { showActionsMenu = true }) {
+                            Icon(Icons.Default.Menu, "Кўпроқ амаллар")
                         }
-                    }
-                    if (projectValue != null) {
-                        if (isEditMode) {
-                        } else {
-                            IconButton(onClick = {
-                                viewModel.openDialog(ProjectDialog.EDIT_PROJECT)
-                            }) {
-                                Icon(Icons.Default.Edit, "Ишни таҳрирлаш")
+                        DropdownMenu(
+                            expanded = showActionsMenu,
+                            onDismissRequest = { showActionsMenu = false }
+                        ) {
+                            if (projectValue.endDate == null) {
+                                DropdownMenuItem(
+                                    text = { Text("Ишни якунлаш") },
+                                    leadingIcon = { Icon(Icons.Default.CheckCircle, null, tint = Color.Green) },
+                                    onClick = {
+                                        showActionsMenu = false
+                                        viewModel.completeProject()
+                                    }
+                                )
+                            } else {
+                                DropdownMenuItem(
+                                    text = { Text("Ишни қайта бошлаш") },
+                                    leadingIcon = { Icon(Icons.Default.PlayCircle, null, tint = MaterialTheme.colorScheme.primary) },
+                                    onClick = {
+                                        showActionsMenu = false
+                                        viewModel.reopenProject()
+                                    }
+                                )
                             }
+                            DropdownMenuItem(
+                                text = { Text("Иш тарихи") },
+                                leadingIcon = { Icon(Icons.Default.History, null) },
+                                onClick = {
+                                    showActionsMenu = false
+                                    projectValue.id.let { id -> onHistoryClick(id) }
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Шерик қўшиш") },
+                                leadingIcon = { Icon(Icons.Default.PersonAdd, null) },
+                                onClick = {
+                                    showActionsMenu = false
+                                    viewModel.openDialog(ProjectDialog.ADD_EMPLOYEE)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Харажат қўшиш") },
+                                leadingIcon = { Icon(Icons.Default.Remove, null) },
+                                onClick = {
+                                    showActionsMenu = false
+                                    viewModel.openDialog(ProjectDialog.ADD_EXPENSE)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Пул берди") },
+                                leadingIcon = { Icon(Icons.Default.Add, null) },
+                                onClick = {
+                                    showActionsMenu = false
+                                    viewModel.openDialog(ProjectDialog.ADD_BONUS)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Ишни таҳрирлаш") },
+                                leadingIcon = { Icon(Icons.Default.Edit, null) },
+                                onClick = {
+                                    showActionsMenu = false
+                                    viewModel.openDialog(ProjectDialog.EDIT_PROJECT)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Архивга солиш", color = MaterialTheme.colorScheme.error) },
+                                leadingIcon = { Icon(Icons.Default.Archive, null, tint = MaterialTheme.colorScheme.error) },
+                                onClick = {
+                                    showActionsMenu = false
+                                    viewModel.openDialog(ProjectDialog.ARCHIVE_PROJECT)
+                                }
+                            )
                         }
                     }
                 }

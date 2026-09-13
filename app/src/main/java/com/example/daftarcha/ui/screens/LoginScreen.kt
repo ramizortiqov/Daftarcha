@@ -131,7 +131,7 @@ fun LoginScreen(
                                 if (uiState.errorMessage != null) viewModel.clearError()
                             },
                             label = { Text("Логин") },
-                            placeholder = { Text("масалан: 01 ёки исмингиз") },
+                            placeholder = { Text("Логин") },
                             leadingIcon = {
                                 Icon(Icons.Default.Badge, contentDescription = null)
                             },
