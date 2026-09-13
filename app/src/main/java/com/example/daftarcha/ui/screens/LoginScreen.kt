@@ -208,46 +208,11 @@ fun LoginScreen(
                             }
                         }
 
-                        // Divider
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            HorizontalDivider(modifier = Modifier.weight(1f))
-                            Text(
-                                text = "  ёки  ",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            HorizontalDivider(modifier = Modifier.weight(1f))
-                        }
-
-                        // "Я бригадир" button
-                        OutlinedButton(
-                            onClick = {
-                                viewModel.clearError()
-                                localError = null
-                                isRegisteringBrigadier = true
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp),
-                            shape = androidx.compose.ui.graphics.RectangleShape
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Engineering,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Усто ман",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
+                        // Self-registration for brigadiers has been disabled on purpose:
+                        // accounts are now issued only by the admin (via the management bot),
+                        // which writes directly to the app_users collection in Firestore.
+                        // The "isRegisteringBrigadier" branch below is intentionally kept
+                        // unreachable rather than deleted, in case this is ever revisited.
 
                     } else {
                         // ==================== REGISTER BRIGADIER VIEW ====================

@@ -40,6 +40,11 @@ class AuthManager @Inject constructor(
     private val firestore: FirebaseFirestore
 ) {
     private val TAG = "AuthManager"
+
+    // Brigadier accounts are issued only by the admin (via the management bot).
+    // Flip this back to false only if in-app self-registration is ever reinstated.
+    private val SELF_REGISTRATION_DISABLED = true
+
     private val prefs: SharedPreferences =
         context.getSharedPreferences("daftarcha_auth_prefs", Context.MODE_PRIVATE)
 
@@ -139,6 +144,15 @@ class AuthManager @Inject constructor(
         password: String,
         phone: String? = null
     ): Result<AuthUser> = withContext(Dispatchers.IO) {
+        // Self-registration is disabled: brigadier accounts are now created only by the
+        // admin (via the management bot), which writes directly to Firestore. This guard
+        // stays here even though the UI entry point was removed, so this function can
+        // never create an account if it's ever called from anywhere else in the app.
+        if (SELF_REGISTRATION_DISABLED) {
+            return@withContext Result.failure(
+                IllegalStateException("Рўйхатдан ўтказиш ўчирилган. Логин учун администратор билан боғланинг.")
+            )
+        }
         try {
             val trimmedName = name.trim()
             val trimmedPass = password.trim()
@@ -315,9 +329,20 @@ class AuthManager @Inject constructor(
             val employee = employeeDao.getEmployeeById(employeeId)
                 ?: return@withContext Result.failure(IllegalArgumentException("Шерик топилмади"))
 
-            val existingUserWithLogin = appUserDao.getUserByLoginId(loginId.trim())
+            val trimmedLoginId = loginId.trim()
+
+            // IMPORTANT: app_users is a single GLOBAL Firestore collection shared by every
+            // brigadier in the app (login is just "ID + password", with no company/brigadier
+            // selector), so login IDs must be unique across ALL brigadiers, not just this
+            // device. Checking only the local Room cache (as this used to do) can't see a
+            // different brigadier's worker who already owns this ID on their own device --
+            // that let two unrelated brigadiers' workers silently overwrite each other's
+            // account whenever they ended up with the same ID (e.g. both accepting a default
+            // like "emp_1"). Checking Firestore too closes that gap.
+            val existingUserWithLogin = appUserDao.getUserByLoginId(trimmedLoginId)
+                ?: fetchUserFromFirestore(trimmedLoginId)
             if (existingUserWithLogin != null && existingUserWithLogin.employeeId != employeeId) {
-                return@withContext Result.failure(IllegalArgumentException("Бу ID ('$loginId') аллақачон банд"))
+                return@withContext Result.failure(IllegalArgumentException("Бу ID ('$trimmedLoginId') аллақачон банд. Бошқа ID танланг."))
             }
 
             // Check if employee already had another loginId

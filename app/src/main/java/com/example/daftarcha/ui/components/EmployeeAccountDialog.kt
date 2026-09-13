@@ -15,6 +15,28 @@ import androidx.compose.ui.unit.dp
 import com.example.daftarcha.data.model.AppUser
 import com.example.daftarcha.data.model.Employee
 import com.example.daftarcha.data.model.UserRole
+import kotlin.random.Random
+
+// Login IDs are unique across EVERY brigadier in the app (see AuthManager's comment on
+// createOrUpdateEmployeeAccount), so a small local counter like the old "emp_${employee.id}"
+// default was virtually guaranteed to collide with some other brigadier's worker who also
+// accepted the default. Suggesting a name-based ID with a random suffix instead makes a
+// collision unlikely up front; AuthManager still rejects a genuine collision either way, so
+// this is a UX improvement on top of that real fix, not a replacement for it.
+private const val ID_SUGGESTION_CHARS = "23456789"
+private const val PASSWORD_CHARS = "abcdefghjkmnpqrstuvwxyz23456789"
+
+private fun suggestLoginId(name: String): String {
+    val cleaned = name.trim().lowercase()
+        .replace(Regex("[^a-z0-9а-яёўқғҳ]"), "")
+        .take(12)
+        .ifEmpty { "usta" }
+    val suffix = (1..3).map { ID_SUGGESTION_CHARS[Random.nextInt(ID_SUGGESTION_CHARS.length)] }.joinToString("")
+    return "$cleaned$suffix"
+}
+
+private fun suggestPassword(length: Int = 6): String =
+    (1..length).map { PASSWORD_CHARS[Random.nextInt(PASSWORD_CHARS.length)] }.joinToString("")
 
 @Composable
 fun EmployeeAccountDialog(
@@ -25,16 +47,19 @@ fun EmployeeAccountDialog(
     onSave: (loginId: String, password: String, role: UserRole) -> Unit
 ) {
     var loginId by remember {
-        mutableStateOf(currentAccount?.loginId ?: "emp_${employee.id}")
+        mutableStateOf(currentAccount?.loginId ?: suggestLoginId(employee.name))
     }
     var password by remember {
-        mutableStateOf(currentAccount?.password ?: "1234")
+        mutableStateOf(currentAccount?.password ?: suggestPassword())
     }
     var selectedRole by remember {
         mutableStateOf(currentAccount?.role ?: UserRole.WORKER)
     }
 
-    var passwordVisible by remember { mutableStateOf(false) }
+    // Defaults to visible when it's a freshly-generated password (nothing to hide yet, and
+    // the brigadier needs to actually read it to hand it to the worker); an existing saved
+    // password still opens masked.
+    var passwordVisible by remember { mutableStateOf(currentAccount == null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
