@@ -147,11 +147,12 @@ fun WorkerDashboardScreen(
                         earned = data.totalEarned,
                         paid = data.totalPaid,
                         balance = data.balance,
+                        personalExpenses = data.totalExpensesOnProjects,
                         showEarningsAndDebt = showEarningsAndDebt
                     )
                 }
 
-                // 2. Общий расход (Умумий харажат)
+                // 2. Личные расходы (Шахсий харажатлар)
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -174,12 +175,12 @@ fun WorkerDashboardScreen(
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
                                     Text(
-                                        text = "Умумий харажатлар",
+                                        text = "Шахсий харажатлар",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = "Сиз қатнашган ишлар бўйича",
+                                        text = "Сизга бириктирилган харажатлар",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -193,6 +194,43 @@ fun WorkerDashboardScreen(
                                 color = MaterialTheme.colorScheme.error
                             )
                         }
+                    }
+                }
+
+                // Personal expenses list with comments
+                if (data.personalExpenses.isNotEmpty()) {
+                    items(data.personalExpenses) { expense ->
+                        ListItem(
+                            headlineContent = {
+                                Text(
+                                    text = "%.2f с".format(expense.amount),
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            },
+                            supportingContent = {
+                                Column {
+                                    Text("Сана: ${expense.date}")
+                                    expense.description?.let { desc ->
+                                        if (desc.isNotBlank()) {
+                                            Text(
+                                                text = desc,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            },
+                            leadingContent = {
+                                Icon(
+                                    imageVector = Icons.Default.ReceiptLong,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        )
+                        Divider()
                     }
                 }
 
@@ -261,7 +299,7 @@ fun WorkerDashboardScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = "Ишнинг умумий харажати:",
+                                        text = "Сизнинг шахсий харажатингиз:",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )

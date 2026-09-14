@@ -38,6 +38,17 @@ object DatabaseModule {
         }
     }
 
+    private val MIGRATION_9_10 = object : Migration(9, 10) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            try {
+                db.execSQL("ALTER TABLE expenses ADD COLUMN employeeId INTEGER")
+            } catch (e: Exception) {
+                // Column might already exist
+            }
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_expenses_employeeId ON expenses(employeeId)")
+        }
+    }
+
     // 3. "ИНСТРУКЦИЯ №1": Как создавать саму базу данных
     @Provides
     @Singleton // @Singleton = Создать ОДИН раз и использовать этот экземпляр везде
@@ -49,7 +60,7 @@ object DatabaseModule {
             DaftarchaDatabase::class.java,
             "daftarcha_db" // Имя файла вашей базы данных на телефоне
         )
-            .addMigrations(MIGRATION_8_9)
+            .addMigrations(MIGRATION_8_9, MIGRATION_9_10)
             .fallbackToDestructiveMigration()
             .build()
     }

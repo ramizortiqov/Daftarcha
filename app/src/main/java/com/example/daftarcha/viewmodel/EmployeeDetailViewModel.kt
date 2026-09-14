@@ -101,6 +101,15 @@ class EmployeeDetailViewModel @Inject constructor(
         if (id > 0) paymentDao.getTotalPayments(id) else flowOf(0.0)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
+    // Ушбу ходимга шахсан бириктирилган харажатлар (шашлик, бензин ва ҳ.к.)
+    val personalExpenses: StateFlow<List<Expense>> = employeeId.flatMapLatest { id ->
+        if (id > 0) expenseDao.getExpensesForEmployeeAcrossAllProjects(id) else flowOf(emptyList())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val totalPersonalExpenses: StateFlow<Double> = employeeId.flatMapLatest { id ->
+        if (id > 0) expenseDao.getTotalExpensesForEmployee(id) else flowOf(0.0)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
     // --- 2. РАСЧЕТНЫЕ ПОЛЯ ---
 
     // Общие рабочие дни по всем проектам
@@ -141,9 +150,9 @@ class EmployeeDetailViewModel @Inject constructor(
     private val _totalEarned = MutableStateFlow(0.0)
     val totalEarned: StateFlow<Double> = _totalEarned.asStateFlow() // Отдаем UI неизменяемый Flow
 
-    // Баланс (теперь использует _totalEarned)
-    val balance: StateFlow<Double> = combine(_totalEarned, totalPaid) { earned, paid ->
-        earned - paid
+    // Баланс (заработок минус выплаты минус личные харажаты)
+    val balance: StateFlow<Double> = combine(_totalEarned, totalPaid, totalPersonalExpenses) { earned, paid, expenses ->
+        earned - paid - expenses
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
     // Инициализация расчета заработка при запуске ViewModel
@@ -186,10 +195,10 @@ class EmployeeDetailViewModel @Inject constructor(
 
         employeeDaysMap.forEach { (projectId, employeeWorkdays) ->
             val projectBonuses = bonusesPerProject[projectId] ?: 0.0
-            val projectExpenses = expensesPerProject[projectId] ?: 0.0
             val projectTotalWorkdays = totalDaysPerProject[projectId] ?: 0
-            val netCost = projectBonuses - projectExpenses
-            val projectDailyRate = if (projectTotalWorkdays > 0) netCost / projectTotalWorkdays else 0.0
+            // Харажатлар энди шахсий (иштирокчиларга бириктирилган), шу сабабли
+            // умумий кунлик ставкага таъсир қилмайди.
+            val projectDailyRate = if (projectTotalWorkdays > 0) projectBonuses / projectTotalWorkdays else 0.0
 
             Log.d("EarnedCalc", "Project $projectId: Bonus=$projectBonuses, TotalDays=$projectTotalWorkdays, Rate=$projectDailyRate, EmployeeDays=$employeeWorkdays")
 
@@ -272,14 +281,19 @@ class EmployeeDetailViewModel @Inject constructor(
         val empId = employeeId.value
         if (empId <= 0) return
 
-        val userRoleToSet = if (currentUser.value?.role == UserRole.BRIGADIER) role else UserRole.WORKER
+        // Логин ва паролни фақат Усто (BRIGADIER) бериши/ўзгартириши мумкин — Админга бу
+        // маълумот на кўринади, на ўзгартириш ҳуқуқи берилади.
+        if (currentUser.value?.role != UserRole.BRIGADIER) {
+            onResult(false, "Бу амални фақат Усто бажара олади")
+            return
+        }
 
         viewModelScope.launch {
             val result = authManager.createOrUpdateEmployeeAccount(
                 employeeId = empId,
                 loginId = loginId,
                 password = pass,
-                role = userRoleToSet
+                role = role
             )
             if (result.isSuccess) {
                 onResult(true, null)

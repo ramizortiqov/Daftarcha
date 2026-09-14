@@ -193,6 +193,54 @@ fun CalculationResultScreen(
                     }
                 }
 
+                if (summary.allExpenses.isNotEmpty()) {
+                    item {
+                        Text(
+                            "ХАРАЖАТЛАР (${summary.allExpenses.size})",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)
+                        )
+                    }
+
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant))
+                        ) {
+                            summary.allExpenses.forEachIndexed { index, expense ->
+                                if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = expense.date,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = expense.description,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Text(
+                                        text = "%.0f с".format(expense.amount),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 item {
                     Text(
                         "ШЕРИКЛАР БЎЙИЧА (${summary.employeeStats.size})",
@@ -235,7 +283,19 @@ fun CalculationResultScreen(
                         ) {
                             MiniStat("Ишлади", "%.0f".format(emp.earned))
                             MiniStat("Олди", "%.0f".format(emp.paid))
+                            MiniStat("Харажат", "%.0f".format(emp.expenses))
                             MiniStat("Тўланиши", "%.0f".format(emp.balance), valueColor = balanceColor)
+                        }
+                        if (emp.expenseDetails.isNotEmpty()) {
+                            Column(modifier = Modifier.padding(top = 8.dp)) {
+                                emp.expenseDetails.forEach { detail ->
+                                    Text(
+                                        text = "• ${detail.date}: %.0f с — ${detail.description}".format(detail.amount),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                         }
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)

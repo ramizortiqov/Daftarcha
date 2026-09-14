@@ -42,6 +42,9 @@ import com.example.daftarcha.viewmodel.ProjectDialog
 import com.example.daftarcha.viewmodel.ProjectViewModel
 import com.example.daftarcha.ui.components.AttendanceTable
 import com.example.daftarcha.ui.components.SelectEmployeesDialog
+import com.example.daftarcha.ui.components.EmployeeAmountSplitDialog
+import com.example.daftarcha.ui.components.SplitMode
+import com.example.daftarcha.ui.components.DatePickerConfirmDialog
 import androidx.compose.material.icons.filled.Edit // <-- НОВЫЙ IMPORT
 import androidx.compose.material.icons.filled.Save // <-- НОВЫЙ IMPORT
 import androidx.compose.material.icons.filled.Cancel // <-- НОВЫЙ IMPORT
@@ -77,6 +80,7 @@ fun ProjectScreen(
     val currentDialog by viewModel.dialogState.collectAsState()
     val table by viewModel.attendanceTable.collectAsState()
     val availableEmployees by viewModel.availableEmployees.collectAsState()
+    val pendingSplit by viewModel.pendingSplit.collectAsState()
     var isEditMode by remember { mutableStateOf(false) }
     var showActionsMenu by remember { mutableStateOf(false) }
     val localChanges = viewModel.localAttendanceChanges as Map<Pair<Int, String>, Boolean>
@@ -106,7 +110,7 @@ fun ProjectScreen(
                                     leadingIcon = { Icon(Icons.Default.CheckCircle, null, tint = Color.Green) },
                                     onClick = {
                                         showActionsMenu = false
-                                        viewModel.completeProject()
+                                        viewModel.openDialog(ProjectDialog.COMPLETE_PROJECT)
                                     }
                                 )
                             } else {
@@ -291,9 +295,25 @@ fun ProjectScreen(
                 onDismiss = { viewModel.dismissDialog() },
                 onConfirm = { amountStr, description, _ ->
                     val amount = amountStr.toDoubleOrNull() ?: 0.0
-                    viewModel.addExpense(amount, description)
+                    viewModel.startExpenseSplit(amount, description)
                 }
             )
+        }
+
+        ProjectDialog.ADD_EXPENSE_SPLIT -> {
+            val split = pendingSplit
+            if (split != null) {
+                EmployeeAmountSplitDialog(
+                    title = "Харажатни бўлиш",
+                    totalAmount = split.amount,
+                    employees = employees,
+                    mode = SplitMode.EQUAL_SPLIT_SELECTABLE,
+                    onDismiss = { viewModel.dismissDialog() },
+                    onConfirm = { shares ->
+                        viewModel.addExpense(shares, split.description)
+                    }
+                )
+            }
         }
 
         ProjectDialog.ADD_BONUS -> {
@@ -304,9 +324,26 @@ fun ProjectScreen(
                 onDismiss = { viewModel.dismissDialog() },
                 onConfirm = { amountStr, description, _ ->
                     val amount = amountStr.toDoubleOrNull() ?: 0.0
-                    viewModel.addBonus(amount, description)
+                    viewModel.startBonusSplit(amount, description)
                 }
             )
+        }
+
+        ProjectDialog.ADD_BONUS_SPLIT -> {
+            val split = pendingSplit
+            if (split != null) {
+                EmployeeAmountSplitDialog(
+                    title = "Ким қанча олди?",
+                    totalAmount = split.amount,
+                    employees = employees,
+                    mode = SplitMode.MANUAL,
+                    onDismiss = { viewModel.dismissDialog() },
+                    onConfirm = { shares ->
+                        viewModel.addBonus(split.amount, split.description)
+                        viewModel.distributeBonusPayments(shares, split.description)
+                    }
+                )
+            }
         }
 
         ProjectDialog.ADD_EMPLOYEE -> {
@@ -345,6 +382,16 @@ fun ProjectScreen(
                     }
                 )
             }
+        }
+        ProjectDialog.COMPLETE_PROJECT -> {
+            DatePickerConfirmDialog(
+                title = "Ишни якунлаш санаси",
+                initialDate = null,
+                onDismiss = { viewModel.dismissDialog() },
+                onConfirm = { date ->
+                    viewModel.completeProject(date)
+                }
+            )
         }
         ProjectDialog.NONE -> {
         }

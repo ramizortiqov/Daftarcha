@@ -33,6 +33,7 @@ fun EmployeeStatsCard(
     earned: Double,
     paid: Double,
     balance: Double,
+    personalExpenses: Double = 0.0,
     showEarningsAndDebt: Boolean = true
 ) {
     val balanceColor = when {
@@ -70,6 +71,16 @@ fun EmployeeStatsCard(
                     modifier = Modifier.weight(1f)
                 )
                 VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.fillMaxHeight())
+                StatItem(
+                    title = "Харажатлар",
+                    value = "%.0f с".format(personalExpenses),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+            Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
                 StatItem(
                     title = "Тўланиши керак",
                     value = "%.0f с".format(balance),

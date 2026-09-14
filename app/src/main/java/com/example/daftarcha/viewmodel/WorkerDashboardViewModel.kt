@@ -37,7 +37,9 @@ data class WorkerBaseData(
     val payments: List<Payment>,
     val totalPaid: Double,
     val totalWorkdays: Int,
-    val empDaysMap: Map<Int, Int>
+    val empDaysMap: Map<Int, Int>,
+    val personalExpenses: List<com.example.daftarcha.data.model.Expense>,
+    val totalPersonalExpenses: Double
 )
 
 @HiltViewModel
@@ -111,6 +113,8 @@ class WorkerDashboardViewModel @Inject constructor(
             val empDaysPerProjFlow = attendanceDao.getEmployeeWorkdaysPerProjectFlow(empId)
                 .map { list -> list.associate { it.projectId to it.workdays } }
             val allProjectsFlow = projectDao.getAllProjects()
+            val personalExpensesFlow = expenseDao.getExpensesForEmployeeAcrossAllProjects(empId)
+            val totalPersonalExpensesFlow = expenseDao.getTotalExpensesForEmployee(empId)
 
             val workerBaseFlow: Flow<WorkerBaseData> = combine(
                 employeeFlow,
@@ -119,7 +123,11 @@ class WorkerDashboardViewModel @Inject constructor(
                 totalWorkdaysFlow,
                 empDaysPerProjFlow
             ) { emp, payments, totalPaid, totalWorkdays, empDaysMap ->
-                WorkerBaseData(emp, payments, totalPaid, totalWorkdays, empDaysMap)
+                WorkerBaseData(emp, payments, totalPaid, totalWorkdays, empDaysMap, emptyList(), 0.0)
+            }.combine(personalExpensesFlow) { base, personalExpenses ->
+                base.copy(personalExpenses = personalExpenses)
+            }.combine(totalPersonalExpensesFlow) { base, totalPersonalExpenses ->
+                base.copy(totalPersonalExpenses = totalPersonalExpenses)
             }
 
             combine(
@@ -131,7 +139,9 @@ class WorkerDashboardViewModel @Inject constructor(
                 val projectIds = (base.empDaysMap.keys + projectsMap.keys).toSet()
 
                 var totalEarned = 0.0
-                var totalExpensesAcrossProjects = 0.0
+                val personalExpensesByProject = base.personalExpenses
+                    .groupBy { it.projectId }
+                    .mapValues { (_, list) -> list.sumOf { it.amount } }
                 val breakdowns = mutableListOf<WorkerProjectStat>()
 
                 for (projectId in projectIds) {
@@ -140,17 +150,16 @@ class WorkerDashboardViewModel @Inject constructor(
                     if (workerDaysInProj <= 0) continue
 
                     val projBonus = stats.bonuses[projectId] ?: 0.0
-                    val projExpense = stats.expenses[projectId] ?: 0.0
                     val recordedTotalDays = stats.totalWorkdays[projectId] ?: 0
                     val projTotalDays = maxOf(recordedTotalDays, workerDaysInProj)
 
                     val projectRevenue = if (projBonus > 0.0) projBonus else (proj?.cost ?: 0.0)
-                    val netCost = projectRevenue - projExpense
-                    val dailyRate = if (projTotalDays > 0) netCost / projTotalDays else 0.0
+                    // Харажатлар шахсий бўлганлиги сабабли, умумий ставкага таъсир қилмайди.
+                    val dailyRate = if (projTotalDays > 0) projectRevenue / projTotalDays else 0.0
                     val earnedHere = workerDaysInProj * dailyRate
+                    val personalExpenseHere = personalExpensesByProject[projectId] ?: 0.0
 
                     totalEarned += earnedHere
-                    totalExpensesAcrossProjects += projExpense
 
                     val projName = proj?.name ?: "Иш #$projectId"
                     breakdowns.add(
@@ -158,13 +167,13 @@ class WorkerDashboardViewModel @Inject constructor(
                             projectId = projectId,
                             projectName = projName,
                             workdays = workerDaysInProj,
-                            totalProjectExpense = projExpense,
+                            totalProjectExpense = personalExpenseHere,
                             earnedInProject = earnedHere
                         )
                     )
                 }
 
-                val balance = totalEarned - base.totalPaid
+                val balance = totalEarned - base.totalPaid - base.totalPersonalExpenses
 
                 WorkerProfileData(
                     employee = base.employee,
@@ -172,7 +181,8 @@ class WorkerDashboardViewModel @Inject constructor(
                     totalEarned = totalEarned,
                     totalPaid = base.totalPaid,
                     balance = balance,
-                    totalExpensesOnProjects = totalExpensesAcrossProjects,
+                    totalExpensesOnProjects = base.totalPersonalExpenses,
+                    personalExpenses = base.personalExpenses,
                     payments = base.payments,
                     projectBreakdowns = breakdowns.sortedByDescending { it.workdays }
                 )

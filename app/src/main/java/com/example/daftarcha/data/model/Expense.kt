@@ -8,9 +8,10 @@ import androidx.room.PrimaryKey
 @Entity(
     tableName = "expenses",
     foreignKeys = [
-        ForeignKey(entity = Project::class, parentColumns = ["id"], childColumns = ["projectId"], onDelete = ForeignKey.CASCADE)
+        ForeignKey(entity = Project::class, parentColumns = ["id"], childColumns = ["projectId"], onDelete = ForeignKey.CASCADE),
+        ForeignKey(entity = Employee::class, parentColumns = ["id"], childColumns = ["employeeId"], onDelete = ForeignKey.SET_NULL)
     ],
-    indices = [Index(value = ["projectId"])]
+    indices = [Index(value = ["projectId"]), Index(value = ["employeeId"])]
 )
 data class Expense(
     @PrimaryKey(autoGenerate = true)
@@ -18,5 +19,7 @@ data class Expense(
     val projectId: Int,
     val amount: Double,
     val description: String?,
-    val date: String // YYYY-MM-DD
+    val date: String, // YYYY-MM-DD
+    // Кимга тегишли харажат улуши. null = эски (тарқатилмаган) ёзув.
+    val employeeId: Int? = null
 )

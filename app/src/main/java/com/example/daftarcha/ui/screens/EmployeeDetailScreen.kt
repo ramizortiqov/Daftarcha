@@ -51,6 +51,8 @@ fun EmployeeDetailScreen(
     val totalEarned by viewModel.totalEarned.collectAsState()
     val balance by viewModel.balance.collectAsState()
     val totalWorkdays by viewModel.totalWorkdays.collectAsState()
+    val personalExpenses by viewModel.personalExpenses.collectAsState()
+    val totalPersonalExpenses by viewModel.totalPersonalExpenses.collectAsState()
     val currentDialog by viewModel.dialogState.collectAsState()
     val employeeAccount by viewModel.employeeAccount.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
@@ -70,13 +72,16 @@ fun EmployeeDetailScreen(
                 },
                 actions = {
                     if (currentEmployee != null) {
-                        // Key icon for setting ID / Password / Role
-                        IconButton(onClick = { viewModel.openDialog(EmployeeDialog.ACCOUNT_CREDENTIALS) }) {
-                            Icon(
-                                Icons.Default.Key,
-                                contentDescription = "ID ва парол бериш",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
+                        // Key icon for setting ID / Password / Role — только Усто (BRIGADIER)
+                        // видит/бошқаради шериклар логин-паролини.
+                        if (isBrigadier) {
+                            IconButton(onClick = { viewModel.openDialog(EmployeeDialog.ACCOUNT_CREDENTIALS) }) {
+                                Icon(
+                                    Icons.Default.Key,
+                                    contentDescription = "ID ва парол бериш",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
 
                         // Fire employee
@@ -131,58 +136,61 @@ fun EmployeeDetailScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                // Login credentials card
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { viewModel.openDialog(EmployeeDialog.ACCOUNT_CREDENTIALS) },
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (employeeAccount != null) {
-                            if (employeeAccount?.role == UserRole.ADMIN) MaterialTheme.colorScheme.tertiaryContainer
-                            else MaterialTheme.colorScheme.secondaryContainer
-                        } else MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                ) {
-                    Row(
+                // Login credentials card — фақат Усто (BRIGADIER) шериклар логин/паролини
+                // кўриши ва ўзгартириши мумкин. Админ учун бу маълумот яширилади.
+                if (isBrigadier) {
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .clickable { viewModel.openDialog(EmployeeDialog.ACCOUNT_CREDENTIALS) },
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (employeeAccount != null) {
+                                if (employeeAccount?.role == UserRole.ADMIN) MaterialTheme.colorScheme.tertiaryContainer
+                                else MaterialTheme.colorScheme.secondaryContainer
+                            } else MaterialTheme.colorScheme.surfaceVariant
+                        ),
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = if (employeeAccount?.role == UserRole.ADMIN) Icons.Default.Shield else Icons.Default.Key,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    text = if (employeeAccount != null) "Кириш ID: ${employeeAccount?.loginId}" else "Кириш маълумотлари берилмаган",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = if (employeeAccount?.role == UserRole.ADMIN) Icons.Default.Shield else Icons.Default.Key,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
                                 )
-                                Text(
-                                    text = if (employeeAccount != null) {
-                                        val roleLabel = if (employeeAccount?.role == UserRole.ADMIN) "Админ" else "Шерик"
-                                        "Парол: •••• | Рол: $roleLabel"
-                                    } else {
-                                        "ID ва парол тайинлаш учун босинг"
-                                    },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = if (employeeAccount != null) "Кириш ID: ${employeeAccount?.loginId}" else "Кириш маълумотлари берилмаган",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = if (employeeAccount != null) {
+                                            val roleLabel = if (employeeAccount?.role == UserRole.ADMIN) "Админ" else "Шерик"
+                                            "Парол: •••• | Рол: $roleLabel"
+                                        } else {
+                                            "ID ва парол тайинлаш учун босинг"
+                                        },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
-                        }
 
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Ўзгартириш",
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Ўзгартириш",
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
 
@@ -191,7 +199,8 @@ fun EmployeeDetailScreen(
                     workdays = totalWorkdays,
                     earned = totalEarned,
                     paid = totalPaid,
-                    balance = balance
+                    balance = balance,
+                    personalExpenses = totalPersonalExpenses
                 )
 
                 // Pay and Reset buttons
@@ -277,6 +286,51 @@ fun EmployeeDetailScreen(
                         Divider()
                     }
                 }
+
+                // Personal expenses history
+                Text(
+                    text = "Шахсий харажатлар тарихи",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    if (personalExpenses.isEmpty()) {
+                        Text(
+                            text = "Шахсий харажатлар йўқ.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
+                    personalExpenses.forEach { expense ->
+                        ListItem(
+                            headlineContent = {
+                                Text(
+                                    text = "Суммаси: ${expense.amount} с",
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            },
+                            supportingContent = {
+                                Column {
+                                    Text("Санаси: ${expense.date}")
+                                    expense.description?.let { desc ->
+                                        Text(
+                                            text = desc,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontStyle = FontStyle.Italic
+                                        )
+                                    }
+                                }
+                            },
+                            leadingContent = {
+                                Icon(Icons.Default.Payment, contentDescription = "Харажат", tint = MaterialTheme.colorScheme.error)
+                            }
+                        )
+                        Divider()
+                    }
+                }
             }
         }
     }
@@ -292,6 +346,7 @@ fun EmployeeDetailScreen(
                 onConfirm = { amountStr, description, _ ->
                     val amount = amountStr.toDoubleOrNull() ?: 0.0
                     viewModel.addPayment(amount, description)
+                    viewModel.dismissDialog()
                 }
             )
         }
@@ -306,6 +361,7 @@ fun EmployeeDetailScreen(
                     onDismiss = { viewModel.dismissDialog() },
                     onConfirm = { newName, newPhone, _ ->
                         viewModel.updateEmployee(newName, newPhone)
+                        viewModel.dismissDialog()
                     }
                 )
             }
@@ -337,7 +393,7 @@ fun EmployeeDetailScreen(
             )
         }
         EmployeeDialog.ACCOUNT_CREDENTIALS -> {
-            if (currentEmployee != null) {
+            if (currentEmployee != null && isBrigadier) {
                 EmployeeAccountDialog(
                     employee = currentEmployee,
                     currentAccount = employeeAccount,

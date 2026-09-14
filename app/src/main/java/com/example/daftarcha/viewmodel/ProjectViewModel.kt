@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.daftarcha.data.dao.*
 import com.example.daftarcha.data.model.*
+import com.example.daftarcha.data.auth.AuthManager
 import com.example.daftarcha.data.sync.FirestoreSyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -18,11 +19,19 @@ import androidx.compose.runtime.mutableStateMapOf
 enum class ProjectDialog {
     NONE,
     ADD_EXPENSE,
+    ADD_EXPENSE_SPLIT,
     ADD_BONUS,
+    ADD_BONUS_SPLIT,
     ADD_EMPLOYEE,
     ARCHIVE_PROJECT,
-    EDIT_PROJECT
+    EDIT_PROJECT,
+    COMPLETE_PROJECT
 }
+
+data class PendingSplit(
+    val amount: Double,
+    val description: String?
+)
 
 data class AttendanceTable(
     val dates: List<String> = emptyList(),
@@ -54,6 +63,7 @@ class ProjectViewModel @Inject constructor(
     private val bonusDao: BonusDao,
     private val paymentDao: PaymentDao,
     private val syncManager: FirestoreSyncManager,
+    private val authManager: AuthManager,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -83,7 +93,9 @@ class ProjectViewModel @Inject constructor(
         if (id > 0) {
             val totalWorkdays = attendanceDao.getTotalWorkdaysForProject(id)
             val netCost = totalBonuses - totalExpenses
-            val dailyRate = if (totalWorkdays > 0) netCost / totalWorkdays else 0.0
+            // Харажат энди шахсий (иштирокчиларга бириктирилган), шу сабабли умумий
+            // кунлик ставкага таъсир қилмайди — ставка фақат тушган пулдан ҳисобланади.
+            val dailyRate = if (totalWorkdays > 0) totalBonuses / totalWorkdays else 0.0
 
             ProjectStats(
                 totalWorkdays = totalWorkdays,
@@ -157,7 +169,11 @@ class ProjectViewModel @Inject constructor(
 
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AttendanceTable())
 
-    private val allEmployees: StateFlow<List<Employee>> = employeeDao.getAllEmployees()
+    private val allEmployees: StateFlow<List<Employee>> = authManager.currentUser
+        .flatMapLatest { user ->
+            val bId = user?.effectiveBrigadierId ?: ""
+            employeeDao.getEmployeesForBrigadier(bId)
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val availableEmployees: StateFlow<List<Employee>> = combine(
@@ -192,7 +208,13 @@ class ProjectViewModel @Inject constructor(
         val employeeNameMap = allEmps.associate { it.id to it.name }
 
         expenses.mapTo(history) {
-            HistoryItem("Харажат", it.amount, it.date, it.description ?: "Харажат")
+            val details = if (it.employeeId != null) {
+                val name = employeeNameMap[it.employeeId] ?: "Номаълум шерик"
+                "Харажат: $name" + (it.description?.let { d -> " ($d)" } ?: "")
+            } else {
+                it.description ?: "Харажат"
+            }
+            HistoryItem("Харажат", it.amount, it.date, details)
         }
         bonuses.mapTo(history) {
             HistoryItem("Пул берди", it.amount, it.date, it.description ?: "Пул берди")
@@ -239,12 +261,29 @@ class ProjectViewModel @Inject constructor(
     private val _dialogState = MutableStateFlow(ProjectDialog.NONE)
     val dialogState: StateFlow<ProjectDialog> = _dialogState.asStateFlow()
 
+    private val _pendingSplit = MutableStateFlow<PendingSplit?>(null)
+    val pendingSplit: StateFlow<PendingSplit?> = _pendingSplit.asStateFlow()
+
      fun openDialog(dialog: ProjectDialog) {
         _dialogState.value = dialog
     }
 
     fun dismissDialog() {
         _dialogState.value = ProjectDialog.NONE
+        _pendingSplit.value = null
+    }
+
+    /** Сумма/тавсиф киритилгандан кейин — рабочилар бўйича тарқатиш диалогини очади. */
+    fun startExpenseSplit(amount: Double, description: String?) {
+        if (amount <= 0) return
+        _pendingSplit.value = PendingSplit(amount, description)
+        _dialogState.value = ProjectDialog.ADD_EXPENSE_SPLIT
+    }
+
+    fun startBonusSplit(amount: Double, description: String?) {
+        if (amount <= 0) return
+        _pendingSplit.value = PendingSplit(amount, description)
+        _dialogState.value = ProjectDialog.ADD_BONUS_SPLIT
     }
 
     private fun getCurrentDate(): String {
@@ -269,15 +308,24 @@ class ProjectViewModel @Inject constructor(
             dismissDialog()
         }
     }
-    fun addExpense(amount: Double, description: String?) {
-        if (projectId.value == 0 || amount <= 0) return
+    /**
+     * Харажатни танланган рабочилар бўйича тарқатиб сақлайди — умумий "котлa" ёзув
+     * бўлмайди, ҳар бир иштирокчига алоҳида (улуши билан) Expense ёзуви қўшилади.
+     */
+    fun addExpense(shares: Map<Int, Double>, description: String?) {
+        if (projectId.value == 0 || shares.isEmpty()) return
         viewModelScope.launch {
-            expenseDao.insert(Expense(
-                projectId = projectId.value,
-                amount = amount,
-                description = description,
-                date = getCurrentDate()
-            ))
+            val date = getCurrentDate()
+            val expenses = shares.filterValues { it > 0.0 }.map { (employeeId, amount) ->
+                Expense(
+                    projectId = projectId.value,
+                    amount = amount,
+                    description = description,
+                    date = date,
+                    employeeId = employeeId
+                )
+            }
+            expenses.forEach { expenseDao.insert(it) }
         }
     }
 
@@ -290,6 +338,28 @@ class ProjectViewModel @Inject constructor(
                 description = description,
                 date = getCurrentDate()
             ))
+        }
+    }
+
+    /**
+     * "Пул берди" тарқатиш — киритилган суммадан кимга қанча берилганини Тўлов
+     * (Payment) сифатида қайд қилади: рабочининг қарзи шунга ўзгаради ва бу
+     * унинг шахсий тарихида ҳам, объект тарихида ҳам кўринади.
+     */
+    fun distributeBonusPayments(shares: Map<Int, Double>, bonusDescription: String?) {
+        if (projectId.value == 0 || shares.isEmpty()) return
+        viewModelScope.launch {
+            val date = getCurrentDate()
+            val note = "Пул берди" + (bonusDescription?.takeIf { it.isNotBlank() }?.let { ": $it" } ?: "")
+            shares.filterValues { it > 0.0 }.forEach { (employeeId, amount) ->
+                paymentDao.insert(Payment(
+                    employeeId = employeeId,
+                    projectId = projectId.value,
+                    amount = amount,
+                    date = date,
+                    description = note
+                ))
+            }
         }
     }
 
@@ -328,11 +398,11 @@ class ProjectViewModel @Inject constructor(
         }
     }
 
-    fun completeProject() {
-        if (projectId.value > 0) {
+    fun completeProject(endDate: String) {
+        if (projectId.value > 0 && endDate.isNotBlank()) {
             viewModelScope.launch {
-                val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-                projectDao.setProjectEndDate(projectId.value, currentDate)
+                projectDao.setProjectEndDate(projectId.value, endDate)
+                dismissDialog()
             }
         }
     }

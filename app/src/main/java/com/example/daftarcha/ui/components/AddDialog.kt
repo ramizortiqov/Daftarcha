@@ -120,8 +120,11 @@ fun AddDialog(
         confirmButton = {
             Button(
                 onClick = {
+                    // Диалогни ёпиш энди чақирувчининг зиммасида — баъзи ҳолларда
+                    // onConfirm кейинги диалогни очиши мумкин (масалан, суммани
+                    // рабочилар бўйича тарқатиш), шунда бу ерда onDismiss() ни
+                    // автоматик чақириш ўша ҳолатни бекор қилиб қўяди.
                     onConfirm(name, phone.takeIf { phoneLabel != null }, formattedDate.takeIf { it.isNotBlank() })
-                    onDismiss()
                 },
                 enabled = name.isNotBlank() && (!showDateField || selectedDateMillis != null),
                 shape = androidx.compose.ui.graphics.RectangleShape

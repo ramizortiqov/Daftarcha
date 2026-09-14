@@ -184,11 +184,13 @@ class FirestoreSyncManager @Inject constructor(
         }
 
         // 3. Project Employees
+        // Эслатма: бу ерда ва пастдаги давомат/пул берди/харажат/тўлов бўлимларида
+        // ЭСКИ умумий (brigadier'га боғланмаган) коллекцияга fallback қилинмайди —
+        // чунки бу ёзувларда brigadierId йўқ ва projectId локал (қурилмадаги) autoincrement
+        // бўлгани учун ҳар хил бригадирларнинг рақамлари тасодифан мос келиб қолиши мумкин,
+        // бу эса бошқа бригадирнинг молиявий маълумотлари сизникига "сизиб ўтишига" олиб келади.
         try {
-            var peSnap = getBrigadierCollection(brigadierId, "project_employees").get().await()
-            if (peSnap.isEmpty) {
-                peSnap = firestore.collection("project_employees").get().await()
-            }
+            val peSnap = getBrigadierCollection(brigadierId, "project_employees").get().await()
             val peList = peSnap.documents.mapNotNull { doc ->
                 val idParts = doc.id.split("_")
                 val projectId = (doc.getLong("projectId") ?: doc.getString("projectId")?.toLongOrNull())?.toInt()
@@ -209,10 +211,7 @@ class FirestoreSyncManager @Inject constructor(
 
         // 4. Attendance
         try {
-            var attSnap = getBrigadierCollection(brigadierId, "attendance").get().await()
-            if (attSnap.isEmpty) {
-                attSnap = firestore.collection("attendance").get().await()
-            }
+            val attSnap = getBrigadierCollection(brigadierId, "attendance").get().await()
             val attendanceList = attSnap.documents.mapNotNull { doc ->
                 val idParts = doc.id.split("_")
                 val projectId = (doc.getLong("projectId") ?: doc.getString("projectId")?.toLongOrNull())?.toInt()
@@ -239,10 +238,7 @@ class FirestoreSyncManager @Inject constructor(
 
         // 5. Bonuses
         try {
-            var bonusSnap = getBrigadierCollection(brigadierId, "bonuses").get().await()
-            if (bonusSnap.isEmpty) {
-                bonusSnap = firestore.collection("bonuses").get().await()
-            }
+            val bonusSnap = getBrigadierCollection(brigadierId, "bonuses").get().await()
             val bonuses = bonusSnap.documents.mapNotNull { doc ->
                 val id = (doc.getLong("id") ?: doc.id.toLongOrNull())?.toInt() ?: return@mapNotNull null
                 val projectId = doc.getLong("projectId")?.toInt() ?: return@mapNotNull null
@@ -261,10 +257,7 @@ class FirestoreSyncManager @Inject constructor(
 
         // 6. Expenses
         try {
-            var expSnap = getBrigadierCollection(brigadierId, "expenses").get().await()
-            if (expSnap.isEmpty) {
-                expSnap = firestore.collection("expenses").get().await()
-            }
+            val expSnap = getBrigadierCollection(brigadierId, "expenses").get().await()
             val expenses = expSnap.documents.mapNotNull { doc ->
                 val id = (doc.getLong("id") ?: doc.id.toLongOrNull())?.toInt() ?: return@mapNotNull null
                 val projectId = doc.getLong("projectId")?.toInt() ?: return@mapNotNull null
@@ -272,7 +265,8 @@ class FirestoreSyncManager @Inject constructor(
                 val amount = doc.getDouble("amount") ?: 0.0
                 val description = doc.getString("description")
                 val date = doc.getString("date") ?: ""
-                Expense(id = id, projectId = projectId, amount = amount, description = description, date = date)
+                val employeeId = doc.getLong("employeeId")?.toInt()
+                Expense(id = id, projectId = projectId, amount = amount, description = description, date = date, employeeId = employeeId)
             }
             if (expenses.isNotEmpty()) {
                 expenseDao.insertAll(expenses)
@@ -283,10 +277,7 @@ class FirestoreSyncManager @Inject constructor(
 
         // 7. Payments
         try {
-            var paySnap = getBrigadierCollection(brigadierId, "payments").get().await()
-            if (paySnap.isEmpty) {
-                paySnap = firestore.collection("payments").get().await()
-            }
+            val paySnap = getBrigadierCollection(brigadierId, "payments").get().await()
             val payments = paySnap.documents.mapNotNull { doc ->
                 val id = (doc.getLong("id") ?: doc.id.toLongOrNull())?.toInt() ?: return@mapNotNull null
                 val employeeId = doc.getLong("employeeId")?.toInt() ?: return@mapNotNull null
@@ -480,7 +471,8 @@ class FirestoreSyncManager @Inject constructor(
                     "projectId" to ex.projectId,
                     "amount" to ex.amount,
                     "description" to ex.description,
-                    "date" to ex.date
+                    "date" to ex.date,
+                    "employeeId" to ex.employeeId
                 )
                 batch.set(ref, map, SetOptions.merge())
             }
