@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:320445989344:android:11bfd4539b6a964e7beb85",
+        "mobilesdk_app_id": "1:320445989344:android:40be4a428899a8437beb85",
         "android_client_info": {
-          "package_name": "com.example.daftarcha"
+          "package_name": "com.or.daftarcha"
         }
       },
       "oauth_client": [],

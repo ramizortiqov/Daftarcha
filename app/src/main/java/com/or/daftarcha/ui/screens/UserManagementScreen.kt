@@ -1,0 +1,287 @@
+package com.or.daftarcha.ui.screens
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.or.daftarcha.data.model.AppUser
+import com.or.daftarcha.data.model.UserRole
+import com.or.daftarcha.viewmodel.AuthViewModel
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun UserManagementScreen(
+    onBackClick: () -> Unit,
+    viewModel: AuthViewModel = hiltViewModel()
+) {
+    val users by viewModel.allAppUsers.collectAsState()
+    val currentUser by viewModel.currentUser.collectAsState()
+    val showWorkerEarningsAndDebt by viewModel.showWorkerEarningsAndDebt.collectAsState()
+
+    var userToEditRole by remember { mutableStateOf<AppUser?>(null) }
+    var selectedNewRole by remember { mutableStateOf<UserRole>(UserRole.WORKER) }
+    val isBrigadier = currentUser?.role == UserRole.BRIGADIER
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Фойдаланувчилар ва Роллар") },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Орқага")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (isBrigadier) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (showWorkerEarningsAndDebt) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = null,
+                                        tint = if (showWorkerEarningsAndDebt) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                                    )
+                                    Text(
+                                        text = "Шерикларга пулни кўрсатиш",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = if (showWorkerEarningsAndDebt)
+                                        "Ёқилган: оддий шериклар ўз шахсий кабинетида ишланган пул ва қарзни кўради."
+                                    else
+                                        "Ўчирилган: оддий шерикларга ишланган пул ва қарз кўрсатилмайди (фақат иш кунлари ва берилган пул кўринади).",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = showWorkerEarningsAndDebt,
+                                onCheckedChange = { viewModel.setShowWorkerEarningsAndDebt(it) }
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Text(
+                            text = "👑 Роллар тақсимоти",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "• Усто: тўлиқ назорат, янги шериклар, янги ишлар, админ тайинлаш.\n" +
+                                   "• Админ: барча ишлар, давомат ва харажатларга кириш (янги шерик/иш қўшиш ва админ тайинлашдан ташқари).\n" +
+                                   "• Шерик: фақат ўз шахсий ҳисоб-китоби ва харажатларини кўриш.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+            }
+
+            item {
+                Text(
+                    text = "Тизимдаги барча аккаунтлар (${users.size})",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            items(users) { user ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Surface(
+                                color = when (user.role) {
+                                    UserRole.BRIGADIER -> MaterialTheme.colorScheme.primaryContainer
+                                    UserRole.ADMIN -> MaterialTheme.colorScheme.tertiaryContainer
+                                    UserRole.WORKER -> MaterialTheme.colorScheme.surfaceVariant
+                                },
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = when (user.role) {
+                                            UserRole.BRIGADIER -> Icons.Default.Shield
+                                            UserRole.ADMIN -> Icons.Default.Shield
+                                            UserRole.WORKER -> Icons.Default.Key
+                                        },
+                                        contentDescription = null,
+                                        tint = when (user.role) {
+                                            UserRole.BRIGADIER -> MaterialTheme.colorScheme.primary
+                                            UserRole.ADMIN -> MaterialTheme.colorScheme.tertiary
+                                            UserRole.WORKER -> MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Column {
+                                Text(
+                                    text = user.name,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "ID: ${user.loginId} | Парол: ${user.password}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        // Badge / Change role button
+                        if (user.role == UserRole.BRIGADIER) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary,
+                            ) {
+                                Text(
+                                    text = "Усто",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        } else if (isBrigadier) {
+                            OutlinedButton(
+                                onClick = {
+                                    userToEditRole = user
+                                    selectedNewRole = user.role
+                                },
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                shape = androidx.compose.ui.graphics.RectangleShape
+                            ) {
+                                Text(
+                                    text = if (user.role == UserRole.ADMIN) "Админ ✏️" else "Шерик ✏️",
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
+                        } else {
+                            Surface(
+                                color = if (user.role == UserRole.ADMIN) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                            ) {
+                                Text(
+                                    text = if (user.role == UserRole.ADMIN) "Админ" else "Шерик",
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (userToEditRole != null && isBrigadier) {
+        val editing = userToEditRole!!
+        AlertDialog(
+            onDismissRequest = { userToEditRole = null },
+            title = { Text("${editing.name} ролини ўзгартириш") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Янги ролни танланг:")
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = selectedNewRole == UserRole.WORKER,
+                            onClick = { selectedNewRole = UserRole.WORKER },
+                            label = { Text("Шерик (Ишчи)") }
+                        )
+                        FilterChip(
+                            selected = selectedNewRole == UserRole.ADMIN,
+                            onClick = { selectedNewRole = UserRole.ADMIN },
+                            label = { Text("Админ") }
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.setUserRole(editing.loginId, selectedNewRole) { success, _ ->
+                            userToEditRole = null
+                        }
+                    },
+                    shape = androidx.compose.ui.graphics.RectangleShape
+                ) {
+                    Text("САҚЛАШ")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { userToEditRole = null }) {
+                    Text("БЕКОР ҚИЛИШ")
+                }
+            }
+        )
+    }
+}

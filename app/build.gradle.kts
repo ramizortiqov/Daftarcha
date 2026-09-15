@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.daftarcha"
+    namespace = "com.or.daftarcha"
     compileSdk = 34 // РЕКОМЕНДУЕТСЯ: 34 (стабильный Android 14)
 
     defaultConfig {
-        applicationId = "com.example.daftarcha"
+        applicationId = "com.or.daftarcha"
         minSdk = 28
         targetSdk = 34 // РЕКОМЕНДУЕТСЯ: 34 (стабильный Android 14)
         versionCode = 1
