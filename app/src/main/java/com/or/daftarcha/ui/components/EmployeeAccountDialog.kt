@@ -56,6 +56,10 @@ fun EmployeeAccountDialog(
         mutableStateOf(currentAccount?.role ?: UserRole.WORKER)
     }
 
+    // Устонинг ўз ҳисоби: роли ҳеч қачон бу ердан ўзгартирилмаслиги керак — акс ҳолда
+    // Усто ўзини тасодифан Шерик/Админга туширворса, ўз ҳуқуқларини йўқотиб қўяди.
+    val isOwnBrigadierAccount = currentAccount?.role == UserRole.BRIGADIER
+
     // Defaults to visible when it's a freshly-generated password (nothing to hide yet, and
     // the brigadier needs to actually read it to hand it to the worker); an existing saved
     // password still opens masked.
@@ -111,7 +115,23 @@ fun EmployeeAccountDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                if (canManageRoles) {
+                if (isOwnBrigadierAccount) {
+                    Text(
+                        text = "Тизимдаги роли:",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Усто (роль ўзгартирилмайди)",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
+                } else if (canManageRoles) {
                     Text(
                         text = "Тизимдаги роли:",
                         style = MaterialTheme.typography.labelLarge,

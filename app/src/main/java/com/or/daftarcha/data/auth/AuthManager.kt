@@ -76,6 +76,7 @@ class AuthManager @Inject constructor(
                 }
 
                 if (user != null) {
+                    user = ensureEmployeeForBrigadier(user)
                     val effectiveBId = resolveEffectiveBrigadierId(user)
                     if (user.brigadierId != effectiveBId && effectiveBId.isNotBlank()) {
                         try {
@@ -115,6 +116,32 @@ class AuthManager @Inject constructor(
             Log.e(TAG, "Initialization failed: ${e.message}", e)
         } finally {
             _isInitialized.value = true
+        }
+    }
+
+    /**
+     * Бот-администратор создаёт бригадира только в app_users (без записи в employees),
+     * поэтому такой бригадир не появляется в списке "шериклар". Восстанавливаем это здесь:
+     * при входе/инициализации сессии, если у бригадира ещё нет привязанного employeeId,
+     * создаём для него запись Employee (как раньше делал self-registration) и связываем.
+     */
+    private suspend fun ensureEmployeeForBrigadier(user: AppUser): AppUser {
+        if (user.role != UserRole.BRIGADIER || user.employeeId != null) return user
+        return try {
+            val employeeId = employeeDao.insert(
+                Employee(
+                    name = user.name,
+                    phone = user.phone,
+                    brigadierId = user.loginId
+                )
+            ).toInt()
+            val updatedUser = user.copy(employeeId = employeeId)
+            appUserDao.update(updatedUser)
+            uploadUserToCloud(updatedUser)
+            updatedUser
+        } catch (e: Exception) {
+            Log.w(TAG, "Ensure employee for brigadier warning: ${e.message}")
+            user
         }
     }
 
@@ -257,6 +284,8 @@ class AuthManager @Inject constructor(
             if (user == null) {
                 return@withContext Result.failure(IllegalArgumentException("ID/исм ёки парол нотўғри"))
             }
+
+            user = ensureEmployeeForBrigadier(user)
 
             val effectiveBId = resolveEffectiveBrigadierId(user)
             if (user.brigadierId != effectiveBId && effectiveBId.isNotBlank()) {
