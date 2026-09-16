@@ -161,6 +161,11 @@ class FirestoreSyncManager @Inject constructor(
         }
 
         // 2. Employees
+        // downloadedEmployeeIds used below to drop attendance/project_employees/expenses/payments
+        // docs pointing at an employee we don't have: Room's FK on employeeId is CASCADE, and
+        // upsertAll/insertAll run as one transaction, so a single stale/orphaned doc would throw
+        // and silently roll back the ENTIRE collection for that sync (caught by the try/catch below).
+        val downloadedEmployeeIds = mutableSetOf<Int>()
         try {
             var empSnap = getBrigadierCollection(brigadierId, "employees").get().await()
             if (empSnap.isEmpty) {
@@ -178,6 +183,7 @@ class FirestoreSyncManager @Inject constructor(
             }
             if (employees.isNotEmpty()) {
                 employeeDao.insertAll(employees)
+                downloadedEmployeeIds.addAll(employees.map { it.id })
             }
         } catch (e: Exception) {
             Log.w(TAG, "Employees download warning: ${e.message}")
@@ -199,6 +205,7 @@ class FirestoreSyncManager @Inject constructor(
                     ?: idParts.getOrNull(1)?.toIntOrNull()
                 if (projectId != null && employeeId != null) {
                     if (downloadedProjectIds.isNotEmpty() && !downloadedProjectIds.contains(projectId)) return@mapNotNull null
+                    if (downloadedEmployeeIds.isNotEmpty() && !downloadedEmployeeIds.contains(employeeId)) return@mapNotNull null
                     ProjectEmployee(projectId = projectId, employeeId = employeeId)
                 } else null
             }
@@ -226,6 +233,7 @@ class FirestoreSyncManager @Inject constructor(
                     ?: false
                 if (projectId != null && employeeId != null && !date.isNullOrBlank()) {
                     if (downloadedProjectIds.isNotEmpty() && !downloadedProjectIds.contains(projectId)) return@mapNotNull null
+                    if (downloadedEmployeeIds.isNotEmpty() && !downloadedEmployeeIds.contains(employeeId)) return@mapNotNull null
                     Attendance(projectId = projectId, employeeId = employeeId, date = date, present = present)
                 } else null
             }
@@ -268,6 +276,7 @@ class FirestoreSyncManager @Inject constructor(
                 val description = doc.getString("description")
                 val date = doc.getString("date") ?: ""
                 val employeeId = doc.getLong("employeeId")?.toInt()
+                if (employeeId != null && downloadedEmployeeIds.isNotEmpty() && !downloadedEmployeeIds.contains(employeeId)) return@mapNotNull null
                 Expense(id = id, projectId = projectId, amount = amount, description = description, date = date, employeeId = employeeId)
             }
             if (expenses.isNotEmpty()) {
@@ -283,7 +292,9 @@ class FirestoreSyncManager @Inject constructor(
             val payments = paySnap.documents.mapNotNull { doc ->
                 val id = (doc.getLong("id") ?: doc.id.toLongOrNull())?.toInt() ?: return@mapNotNull null
                 val employeeId = doc.getLong("employeeId")?.toInt() ?: return@mapNotNull null
+                if (downloadedEmployeeIds.isNotEmpty() && !downloadedEmployeeIds.contains(employeeId)) return@mapNotNull null
                 val projectId = doc.getLong("projectId")?.toInt()
+                if (projectId != null && downloadedProjectIds.isNotEmpty() && !downloadedProjectIds.contains(projectId)) return@mapNotNull null
                 val amount = doc.getDouble("amount") ?: 0.0
                 val date = doc.getString("date") ?: ""
                 val description = doc.getString("description")
