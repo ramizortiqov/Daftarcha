@@ -595,40 +595,21 @@ class AuthManager @Inject constructor(
             prefs.getString("last_active_brigadier_id", "") ?: ""
         }
 
-        // 1. Сначала читаем локальный кэш: сначала персональный, затем глобальный
-        val cached = if (resolvedBId.isNotBlank()) {
-            prefs.getBoolean(
-                "show_worker_earnings_and_debt_$resolvedBId",
-                prefs.getBoolean("show_worker_earnings_and_debt_global", false)
-            )
+        // 1. Сначала читаем локальный кэш — строго по этому бригадиру, без общего фолбэка,
+        // иначе на устройстве, где до этого был активен другой бригадир, значение "протечёт".
+        _showWorkerEarningsAndDebt.value = if (resolvedBId.isNotBlank()) {
+            prefs.getBoolean("show_worker_earnings_and_debt_$resolvedBId", false)
         } else {
-            prefs.getBoolean("show_worker_earnings_and_debt_global", false)
+            false
         }
-        _showWorkerEarningsAndDebt.value = cached
 
         settingsListenerRegistration?.remove()
         settingsListenerRegistration = null
 
-        // 2. Слушаем глобальный документ в реальном времени
-        try {
-            firestore.collection("app_settings").document("worker_visibility")
-                .addSnapshotListener { snapshot, error ->
-                    if (error == null && snapshot != null && snapshot.exists()) {
-                        val enabled = snapshot.getBoolean("showWorkerEarningsAndDebt")
-                        if (enabled != null) {
-                            _showWorkerEarningsAndDebt.value = enabled
-                            prefs.edit().putBoolean("show_worker_earnings_and_debt_global", enabled).apply()
-                            if (resolvedBId.isNotBlank()) {
-                                prefs.edit().putBoolean("show_worker_earnings_and_debt_$resolvedBId", enabled).apply()
-                            }
-                        }
-                    }
-                }
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to attach global worker settings listener: ${e.message}")
-        }
-
-        // 3. Если известен ID бригадира, слушаем также его персональный документ
+        // 2. Слушаем ТОЛЬКО персональный документ этого бригадира в реальном времени.
+        // Раньше здесь был ещё листенер на общий для всех документ app_settings/worker_visibility —
+        // это приводило к тому, что переключение тумблера одним бригадиром сразу отражалось
+        // у шериков всех остальных бригадиров, слушавших тот же общий документ.
         if (resolvedBId.isNotBlank()) {
             try {
                 settingsListenerRegistration = firestore.collection("brigadiers")
@@ -639,7 +620,6 @@ class AuthManager @Inject constructor(
                             if (enabled != null) {
                                 _showWorkerEarningsAndDebt.value = enabled
                                 prefs.edit().putBoolean("show_worker_earnings_and_debt_$resolvedBId", enabled).apply()
-                                prefs.edit().putBoolean("show_worker_earnings_and_debt_global", enabled).apply()
                             }
                         }
                     }
@@ -658,9 +638,6 @@ class AuthManager @Inject constructor(
         }
 
         _showWorkerEarningsAndDebt.value = enabled
-        prefs.edit()
-            .putBoolean("show_worker_earnings_and_debt_global", enabled)
-            .apply()
 
         if (brigadierId.isNotBlank()) {
             prefs.edit()
@@ -670,13 +647,6 @@ class AuthManager @Inject constructor(
         }
 
         try {
-            val globalSettingsMap = hashMapOf<String, Any>(
-                "showWorkerEarningsAndDebt" to enabled,
-                "updatedAt" to System.currentTimeMillis()
-            )
-            firestore.collection("app_settings").document("worker_visibility")
-                .set(globalSettingsMap, SetOptions.merge()).await()
-
             if (brigadierId.isNotBlank()) {
                 val bMap = hashMapOf<String, Any>(
                     "id" to brigadierId,
@@ -694,16 +664,12 @@ class AuthManager @Inject constructor(
     }
 
     fun getShowWorkerEarningsAndDebt(brigadierId: String): Boolean {
-        return prefs.getBoolean(
-            "show_worker_earnings_and_debt_$brigadierId",
-            prefs.getBoolean("show_worker_earnings_and_debt_global", false)
-        )
+        return prefs.getBoolean("show_worker_earnings_and_debt_$brigadierId", false)
     }
 
     fun updateLocalBrigadierSetting(brigadierId: String, enabled: Boolean) {
         prefs.edit()
             .putBoolean("show_worker_earnings_and_debt_$brigadierId", enabled)
-            .putBoolean("show_worker_earnings_and_debt_global", enabled)
             .apply()
         _showWorkerEarningsAndDebt.value = enabled
     }

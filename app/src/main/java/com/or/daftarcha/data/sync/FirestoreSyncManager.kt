@@ -328,6 +328,9 @@ class FirestoreSyncManager @Inject constructor(
         }
 
         // 9. Brigadier Document & Settings
+        // Читаем ТОЛЬКО персональный документ этого бригадира — общий для всех
+        // документ app_settings/worker_visibility больше не используется, т.к. он
+        // "протекал" настройку одного бригадира всем остальным бригадирам/шерикам.
         try {
             val bDoc = firestore.collection("brigadiers").document(brigadierId).get().await()
             if (bDoc.exists()) {
@@ -335,14 +338,7 @@ class FirestoreSyncManager @Inject constructor(
                 val authPrefs = context.getSharedPreferences("daftarcha_auth_prefs", Context.MODE_PRIVATE)
                 authPrefs.edit()
                     .putBoolean("show_worker_earnings_and_debt_$brigadierId", showEarnings)
-                    .putBoolean("show_worker_earnings_and_debt_global", showEarnings)
                     .apply()
-            }
-            val globalDoc = firestore.collection("app_settings").document("worker_visibility").get().await()
-            if (globalDoc.exists()) {
-                val showEarnings = globalDoc.getBoolean("showWorkerEarningsAndDebt") ?: false
-                val authPrefs = context.getSharedPreferences("daftarcha_auth_prefs", Context.MODE_PRIVATE)
-                authPrefs.edit().putBoolean("show_worker_earnings_and_debt_global", showEarnings).apply()
             }
         } catch (e: Exception) {
             Log.w(TAG, "Brigadier doc download error: ${e.message}")
@@ -356,18 +352,13 @@ class FirestoreSyncManager @Inject constructor(
         // 0. Brigadier document & settings
         try {
             val authPrefs = context.getSharedPreferences("daftarcha_auth_prefs", Context.MODE_PRIVATE)
-            val showEarnings = authPrefs.getBoolean(
-                "show_worker_earnings_and_debt_$brigadierId",
-                authPrefs.getBoolean("show_worker_earnings_and_debt_global", false)
-            )
+            val showEarnings = authPrefs.getBoolean("show_worker_earnings_and_debt_$brigadierId", false)
             val bMap = hashMapOf<String, Any>(
                 "id" to brigadierId,
                 "showWorkerEarningsAndDebt" to showEarnings,
                 "updatedAt" to System.currentTimeMillis()
             )
             firestore.collection("brigadiers").document(brigadierId).set(bMap, SetOptions.merge()).await()
-            firestore.collection("app_settings").document("worker_visibility")
-                .set(mapOf("showWorkerEarningsAndDebt" to showEarnings, "updatedAt" to System.currentTimeMillis()), SetOptions.merge()).await()
         } catch (e: Exception) {
             Log.w(TAG, "Brigadier document upload warning: ${e.message}")
         }
